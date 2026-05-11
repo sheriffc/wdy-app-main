@@ -1,0 +1,1 @@
+<script type="text/javascript" language="javascript" src="{{asset("packages/jQueryCalendar-1.0.3/js/jquery-calendar.js")}}"></script>

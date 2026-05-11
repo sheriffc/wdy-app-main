@@ -1,0 +1,1 @@
+<link rel="stylesheet" type="text/css" href="{{asset("packages/jQueryCalendar-1.0.3/css/jquery-calendar.min.css")}}"/>
