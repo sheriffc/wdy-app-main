@@ -231,7 +231,7 @@ class DataSyncQueriesV3
         $where = '';
         if($fromSyncedAt && $fromPk) {
             $where = "WHERE ( l.synced_at > '$fromSyncedAt' OR (l.synced_at = '$fromSyncedAt' AND l.uuid > '$fromPk') )
-                            AND NOT (l.synced_at > '$fromSyncedAt' AND l.synced_by_install_id = '$installId')";
+                            AND NOT (l.synced_at > '$fromSyncedAt' AND l.synced_by_install_id IS NOT NULL AND l.synced_by_install_id = '$installId')";
         }
 
         $sql = "
@@ -279,7 +279,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( l.synced_at > '$fromSyncedAt' OR (l.synced_at = '$fromSyncedAt' AND l.uuid > '$fromPk') )
-                            AND NOT (l.synced_at > '$fromSyncedAt' AND l.synced_by_install_id = '$installId')";
+                            AND NOT (l.synced_at > '$fromSyncedAt' AND l.synced_by_install_id IS NOT NULL AND l.synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -334,7 +334,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $whereUpdate = "WHERE ( u.synced_at > '$fromSyncedAt' OR (u.synced_at = '$fromSyncedAt' AND u.uuid > '$fromPk') )
-                            AND NOT (u.synced_at > '$fromSyncedAt' AND u.synced_by_install_id = '$installId')";
+                            AND NOT (u.synced_at > '$fromSyncedAt' AND u.synced_by_install_id IS NOT NULL AND u.synced_by_install_id = '$installId')";
         }
 
         if($whereSla){
@@ -409,7 +409,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
-                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id IS NOT NULL AND synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -461,7 +461,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
-                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id IS NOT NULL AND synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -521,7 +521,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
-                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id IS NOT NULL AND synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -563,7 +563,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
-                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id IS NOT NULL AND synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -607,7 +607,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( sle.synced_at > '$fromSyncedAt' OR (sle.synced_at = '$fromSyncedAt' AND sle.uuid > '$fromPk') )
-                            AND NOT (sle.synced_at > '$fromSyncedAt' AND sle.synced_by_install_id = '$installId')";
+                            AND NOT (sle.synced_at > '$fromSyncedAt' AND sle.synced_by_install_id IS NOT NULL AND sle.synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -647,7 +647,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
-                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id IS NOT NULL AND synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -695,7 +695,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( mp.synced_at > '$fromSyncedAt' OR (mp.synced_at = '$fromSyncedAt' AND mp.uuid > '$fromPk') )
-                            AND NOT (mp.synced_at > '$fromSyncedAt' AND mp.synced_by_install_id = '$installId')";
+                            AND NOT (mp.synced_at > '$fromSyncedAt' AND mp.synced_by_install_id IS NOT NULL AND mp.synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -737,7 +737,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( pf.synced_at > '$fromSyncedAt' OR (pf.synced_at = '$fromSyncedAt' AND pf.uuid > '$fromPk') )
-                            AND NOT (pf.synced_at > '$fromSyncedAt' AND pf.synced_by_install_id = '$installId')";
+                            AND NOT (pf.synced_at > '$fromSyncedAt' AND pf.synced_by_install_id IS NOT NULL AND pf.synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -781,7 +781,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
-                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id IS NOT NULL AND synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -828,7 +828,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
-                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id IS NOT NULL AND synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -871,7 +871,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( tt.synced_at > '$fromSyncedAt' OR (tt.synced_at = '$fromSyncedAt' AND tt.uuid > '$fromPk') )
-                            AND NOT (tt.synced_at > '$fromSyncedAt' AND tt.synced_by_install_id = '$installId')";
+                            AND NOT (tt.synced_at > '$fromSyncedAt' AND tt.synced_by_install_id IS NOT NULL AND tt.synced_by_install_id = '$installId')";
         }
 
         if($where){
@@ -915,7 +915,7 @@ class DataSyncQueriesV3
 
         if($fromSyncedAt && $fromPk) {
             $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
-                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id IS NOT NULL AND synced_by_install_id = '$installId')";
         }
 
         if($where){
