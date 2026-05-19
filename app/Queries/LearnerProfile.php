@@ -171,6 +171,39 @@ class LearnerProfile {
         return DB::select($sql, [$learnerUuid, $startDate, $endDate]);
     }
 
+    public function performanceRecords($learnerUuid) {
+        $sql = "
+            SELECT
+                lp.academic_year,
+                lp.term_oid,
+                lp.subject_oid,
+                COALESCE(ol_subj.item_name, lp.subject_oid) subject_name,
+                COALESCE(ol_subj.display_order, 9999)       subject_order,
+                lp.assessment_1_score,
+                lp.assessment_2_score,
+                lp.max_score,
+                sg.school_group_name,
+                ol_sgl.item_name school_group_level
+            FROM learner_performance lp
+            LEFT JOIN school_group sg
+                ON sg.uuid = lp.school_group_uuid
+            LEFT JOIN option_list ol_sgl
+                ON ol_sgl.list_name = 'school_group_level'
+                AND sg.school_group_level_oid = ol_sgl.item_id
+            LEFT JOIN option_list ol_subj
+                ON ol_subj.list_name = 'school_subject'
+                AND ol_subj.item_id = lp.subject_oid
+            WHERE lp.learner_uuid = ?
+                AND lp.deleted_at IS NULL
+            ORDER BY
+                lp.academic_year DESC,
+                FIELD(lp.term_oid, 'first_term', 'second_term', 'third_term'),
+                COALESCE(ol_subj.display_order, 9999),
+                ol_subj.item_name
+        ";
+        return DB::select($sql, [$learnerUuid]);
+    }
+
     public function attendanceSummary($learnerUuid) {
         $sql = "
             SELECT

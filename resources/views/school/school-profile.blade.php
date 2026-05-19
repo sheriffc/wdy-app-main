@@ -47,6 +47,109 @@
                 </div>
             </div>
             <div class="row">
+                <div class="col-md-6 mt-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">School Facilities</h5>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-5">Classrooms:</dt>
+                                <dd class="col-sm-7">{{ \App\Queries\School::classroomsLabel($schoolInfo->classrooms_oid) }}</dd>
+                                <dt class="col-sm-5">WASH:</dt>
+                                <dd class="col-sm-7">{{ \App\Queries\School::washLabel($schoolInfo->wash_oids) }}</dd>
+                                <dt class="col-sm-5">Electricity:</dt>
+                                <dd class="col-sm-7">{{ \App\Queries\School::electricityLabel($schoolInfo->electricity_oids) }}</dd>
+                                <dt class="col-sm-5">MNO:</dt>
+                                <dd class="col-sm-7">{{ \App\Queries\School::mnoLabel($schoolInfo->mno_oids) }}</dd>
+                                <dt class="col-sm-5">Learning Materials:</dt>
+                                <dd class="col-sm-7">{{ \App\Queries\School::learningMaterialsLabel($schoolInfo->learning_materials_oids) }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mt-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">School Feeding Submissions</h5>
+                            @if(count($feedingRecords) > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered small mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Supply Period</th>
+                                                <th>Received At</th>
+                                                <th>Supplied By</th>
+                                                <th>Rice</th>
+                                                <th>Beans</th>
+                                                <th>Gari</th>
+                                                <th>Veg Oil</th>
+                                                <th>Salt</th>
+                                                <th>Submitted</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($feedingRecords as $fr)
+                                            <tr>
+                                                <td>{{ $fr->supply_period }}</td>
+                                                <td>{{ $fr->received_at }}</td>
+                                                <td>{{ $fr->supplied_by }}</td>
+                                                <td>{{ $fr->qty_rice ?? '—' }}</td>
+                                                <td>{{ $fr->qty_beans ?? '—' }}</td>
+                                                <td>{{ $fr->qty_gari ?? '—' }}</td>
+                                                <td>{{ $fr->qty_veg_oil ?? '—' }}</td>
+                                                <td>{{ $fr->qty_salt ?? '—' }}</td>
+                                                <td class="text-nowrap text-muted">{{ $fr->submitted_at }}</td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <p class="text-muted mb-0">No feeding submissions recorded.</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 mt-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Stock Available (Monthly)</h5>
+                            @if(count($stockRecords) > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered small mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Month</th>
+                                                <th>Rice (kg)</th>
+                                                <th>Beans (kg)</th>
+                                                <th>Gari (kg)</th>
+                                                <th>Veg Oil (L)</th>
+                                                <th>Salt (kg)</th>
+                                                <th>Last Updated</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($stockRecords as $sr)
+                                            <tr>
+                                                <td>{{ $sr->stock_month }}</td>
+                                                <td>{{ $sr->qty_rice ?? '—' }}</td>
+                                                <td>{{ $sr->qty_beans ?? '—' }}</td>
+                                                <td>{{ $sr->qty_gari ?? '—' }}</td>
+                                                <td>{{ $sr->qty_veg_oil ?? '—' }}</td>
+                                                <td>{{ $sr->qty_salt ?? '—' }}</td>
+                                                <td class="text-nowrap text-muted">{{ $sr->updated_at }}</td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <p class="text-muted mb-0">No stock records available.</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
                 <div class="col-md-6">
                     <div class="card mt-4">
                         <div class="card-body">

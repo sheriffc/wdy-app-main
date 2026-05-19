@@ -20,6 +20,8 @@
                         <thead>
                         <tr>
                             <th class="text-left">District Name</th>
+                            <th class="text-left">District ID</th>
+                            <th class="text-left">District Code</th>
 {{--                                                <th class="text-left">Latitude</th>--}}
 {{--                                                <th class="text-left">Longitude</th>--}}
                             <th class="text-left">Active</th>
@@ -56,8 +58,15 @@
                     name: "district_office.uuid",
                     type: 'readonly'
                 }, {
-                    label: "Name:",
+                    label: "District Name:",
                     name: "district_office.name"
+                }, {
+                    label: "District ID:",
+                    name: "district_office.district_id",
+                    type: 'readonly'
+                }, {
+                    label: "District Code:",
+                    name: "district_office.district_code"
                 }, {
                     label: "Active:",
                     name: "district_office.active",
@@ -122,6 +131,8 @@
             // order: [[1,'asc'],[0,'asc']],
             columns: [
                 {data: "district_office.name"},
+                {data: "district_office.district_id"},
+                {data: "district_office.district_code"},
                 // {data: "district_office.lat"},
                 // {data: "district_office.lng"},
                 {

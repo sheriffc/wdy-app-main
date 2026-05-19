@@ -11,6 +11,7 @@ use App\Queries\School;
 use App\Queries\SchoolAttendanceMonitoring;
 use App\Queries\TeacherReports;
 use App\Queries\LearnerReports;
+use App\Queries\SchoolFeeding;
 use App\Queries\TeacherProfile;
 use App\Queries\LearnerProfile;
 use Carbon\Carbon;
@@ -213,7 +214,7 @@ class PublicController extends Controller
         ]);
     }
 
-    public function schoolProfile($uuid, School $schoolQueries){
+    public function schoolProfile($uuid, School $schoolQueries, SchoolFeeding $schoolFeedingQueries){
 
         $isDistrictOfficerOrAbove = false;
         if( Auth::check() && Auth::user()->user_type_id >= 40){
@@ -221,7 +222,9 @@ class PublicController extends Controller
         }
 
         return view('school.school-profile',[
-            "schoolInfo" => $schoolQueries->getSchoolDetails($uuid),
+            "schoolInfo"       => $schoolQueries->getSchoolDetails($uuid),
+            "feedingRecords"   => $schoolFeedingQueries->getBySchool($uuid),
+            "stockRecords"     => $schoolFeedingQueries->getStockBySchool($uuid),
             'isDistrictOfficerOrAbove' => $isDistrictOfficerOrAbove,
         ]);
     }
@@ -559,11 +562,40 @@ class PublicController extends Controller
         $schoolHistory = $learnerProfile->schoolHistory($uuid);
         $attendanceSummary = $learnerProfile->attendanceSummary($uuid);
 
+        // Pivot performance records by academic_year → subject, with each term inline
+        $reportCard = [];
+        foreach ($learnerProfile->performanceRecords($uuid) as $row) {
+            $year = $row->academic_year;
+            $subj = $row->subject_oid;
+            if (!isset($reportCard[$year])) {
+                $reportCard[$year] = [
+                    'class_label' => trim(($row->school_group_level ?? '') . ' ' . ($row->school_group_name ?? '')),
+                    'subjects'    => [],
+                ];
+            }
+            if (!isset($reportCard[$year]['subjects'][$subj])) {
+                $reportCard[$year]['subjects'][$subj] = [
+                    'subject_name' => $row->subject_name,
+                    'order'        => $row->subject_order,
+                    'first_term'   => null,
+                    'second_term'  => null,
+                    'third_term'   => null,
+                ];
+            }
+            $reportCard[$year]['subjects'][$subj][$row->term_oid] = $row;
+        }
+        krsort($reportCard);
+        foreach ($reportCard as &$yearData) {
+            uasort($yearData['subjects'], fn($a, $b) => $a['order'] <=> $b['order']);
+        }
+        unset($yearData);
+
         return view('learner-profile', [
             'isDistrictOfficerOrAbove' => $isDistrictOfficerOrAbove,
             'details'          => $details,
             'schoolHistory'    => $schoolHistory,
             'attendanceSummary'=> $attendanceSummary,
+            'reportCard'       => $reportCard,
             'learnerUuid'      => $uuid,
         ]);
     }
@@ -572,6 +604,49 @@ class PublicController extends Controller
         $startDate = $request->startDate ?? Carbon::now()->subDays(30)->toDateString();
         $endDate   = $request->endDate   ?? Carbon::now()->toDateString();
         Utils::successResponse("success", $learnerProfile->attendanceRecords($uuid, $startDate, $endDate));
+    }
+
+    public function schoolFeedingReport()
+    {
+        return view('school-feeding');
+    }
+
+    public function getSchoolFeedingTable(SchoolFeeding $schoolFeeding, Request $request)
+    {
+        Utils::successResponse("success", [
+            "feedingTable" => $schoolFeeding->feedingTable($request->districtId),
+        ]);
+    }
+
+    public function schoolsReport()
+    {
+        return view('schools-report');
+    }
+
+    public function getSchoolsTable(School $school, Request $request)
+    {
+        $rows = array_map(function ($row) {
+            $row->wash               = School::washLabel($row->wash_oids);
+            $row->classrooms         = School::classroomsLabel($row->classrooms_oid);
+            $row->electricity        = School::electricityLabel($row->electricity_oids);
+            $row->mno                = School::mnoLabel($row->mno_oids);
+            $row->learning_materials = School::learningMaterialsLabel($row->learning_materials_oids);
+            return $row;
+        }, $school->schoolsTable($request->districtId));
+
+        return Utils::successResponse("success", ["rows" => $rows]);
+    }
+
+    public function schoolFeedingSecretariat()
+    {
+        return view('school-feeding-secretariat');
+    }
+
+    public function getSchoolFeedingSecretariatTable(SchoolFeeding $schoolFeeding, Request $request)
+    {
+        return Utils::successResponse("success", [
+            "rows" => $schoolFeeding->secretariatTable($request->districtId),
+        ]);
     }
 
 }

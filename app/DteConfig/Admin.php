@@ -315,6 +315,10 @@ class Admin
                 Field::inst( 'district_office.name' ),
                 Field::inst( 'school.district_id' ),
                 Field::inst( 'school.chiefdom_id' ),
+                Field::inst( 'chiefdom.name' )->set( false ),
+                Field::inst( 'school.council_name' ),
+                Field::inst( 'school.section_name' ),
+                Field::inst( 'school.town_name' ),
                 Field::inst( 'school.address' ),
                 Field::inst( 'school.lat' ),
                 Field::inst( 'school.lng' ),
@@ -328,6 +332,7 @@ class Admin
             )
             ->leftJoin( 'option_list as education_level',   "education_level.list_name='school_education_level' AND school.school_education_level_oid = education_level.item_id")
             ->leftJoin( 'district_office',   "district_office.uuid = school.district_office_uuid AND district_office.active")
+            ->leftJoin( 'geo as chiefdom',   "chiefdom.id = school.chiefdom_id")
             ;
     }
     function manageDistrictOffices($db,$group, $id,$logging){
@@ -339,6 +344,8 @@ class Admin
             ->fields(
                 Field::inst( 'district_office.uuid' )->set( false ),
                 Field::inst( 'district_office.name' ),
+                Field::inst( 'district_office.district_id' )->set( false ),
+                Field::inst( 'district_office.district_code' ),
                 Field::inst( 'district_office.lat' ),
                 Field::inst( 'district_office.lng' ),
                 Field::inst( 'district_office.active' )

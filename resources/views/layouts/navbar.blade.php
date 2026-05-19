@@ -31,6 +31,12 @@
                     <a class="nav-link {{(Request::is('learner-reports') ? 'active' : '' ) }}" href="{{ route('learner-reports') }}">{{ __('Learner Reports') }}</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {{(Request::is('schools') ? 'active' : '' ) }}" href="{{ route('schools') }}">{{ __('Schools') }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{(Request::is('school-feeding-secretariat') ? 'active' : '' ) }}" href="{{ route('school-feeding-secretariat') }}">{{ __('School Feeding') }}</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{(Request::is('faqs') ? 'active' : '' ) }}" href="{{ route('faqs') }}">{{ __('FAQs') }}</a>
                 </li>
                 <li class="nav-item">

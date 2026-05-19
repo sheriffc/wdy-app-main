@@ -483,6 +483,12 @@ class DataSyncQueriesV3
         section_name,
         town_name,
         address,
+        classrooms_oid,
+        wash_oids,
+        electricity_oids,
+        mno_oids,
+        learning_materials_oids,
+        receives_feeding,
         district_office_uuid,
         lat,
         lng,
@@ -767,6 +773,96 @@ class DataSyncQueriesV3
         return DB::select($sql);
     }
 
+    public static function schoolFeeding($whereIn=false,$fromSyncedAt=false, $fromPk=false, $limit="", $installId=false){
+        $where = '';
+        if($whereIn){
+            $where = "school_uuid IN ($whereIn)";
+        }
+
+        if($fromSyncedAt && $fromPk) {
+            $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+        }
+
+        if($where){
+            $where = "WHERE $where";
+        }
+
+        $sql = "
+        SELECT
+        uuid,
+        school_uuid,
+        receives_feeding,
+        supply_period_oid,
+        received_at,
+        supplied_by_oid,
+        supplied_by_other,
+        qty_rice,
+        qty_beans,
+        qty_gari,
+        qty_veg_oil,
+        qty_salt,
+        created_at,
+        created_by,
+        updated_at,
+        updated_by,
+        deleted_at,
+        deleted_by,
+        synced_at
+        FROM school_feeding
+        $where
+        ORDER BY synced_at,uuid
+        $limit
+        ";
+
+        if(env('LOG_SYNC_SQL',false)) Log::channel('sync')->debug($sql);
+
+        return DB::select($sql);
+    }
+
+    public static function schoolFeedingStock($whereIn=false,$fromSyncedAt=false, $fromPk=false, $limit="", $installId=false){
+        $where = '';
+        if($whereIn){
+            $where = "school_uuid IN ($whereIn)";
+        }
+
+        if($fromSyncedAt && $fromPk) {
+            $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+        }
+
+        if($where){
+            $where = "WHERE $where";
+        }
+
+        $sql = "
+        SELECT
+        uuid,
+        school_uuid,
+        stock_month,
+        qty_rice,
+        qty_beans,
+        qty_gari,
+        qty_veg_oil,
+        qty_salt,
+        created_at,
+        created_by,
+        updated_at,
+        updated_by,
+        deleted_at,
+        deleted_by,
+        synced_at
+        FROM school_feeding_stock
+        $where
+        ORDER BY synced_at,uuid
+        $limit
+        ";
+
+        if(env('LOG_SYNC_SQL',false)) Log::channel('sync')->debug($sql);
+
+        return DB::select($sql);
+    }
+
     public static function teacherTimetable($whereIn=false,$fromSyncedAt=false, $fromPk=false, $limit="", $installId=false){
         $where = '';
         if($whereIn){
@@ -803,6 +899,51 @@ class DataSyncQueriesV3
         FROM teacher_timetable tt
         $where
         ORDER BY tt.synced_at,tt.uuid
+        $limit
+        ";
+
+        if(env('LOG_SYNC_SQL',false)) Log::channel('sync')->debug($sql);
+
+        return DB::select($sql);
+    }
+
+    public static function learnerPerformance($whereIn=false,$fromSyncedAt=false, $fromPk=false, $limit="", $installId=false){
+        $where = '';
+        if($whereIn){
+            $where = "school_uuid IN ($whereIn)";
+        }
+
+        if($fromSyncedAt && $fromPk) {
+            $where .= " AND ( synced_at > '$fromSyncedAt' OR (synced_at = '$fromSyncedAt' AND uuid > '$fromPk') )
+                            AND NOT (synced_at > '$fromSyncedAt' AND synced_by_install_id = '$installId')";
+        }
+
+        if($where){
+            $where = "WHERE $where";
+        }
+
+        $sql = "
+        SELECT
+        uuid,
+        school_uuid,
+        school_group_uuid,
+        learner_uuid,
+        subject_oid,
+        academic_year,
+        term_oid,
+        assessment_1_score,
+        assessment_2_score,
+        max_score,
+        created_at,
+        created_by,
+        updated_at,
+        updated_by,
+        deleted_at,
+        deleted_by,
+        synced_at
+        FROM learner_performance
+        $where
+        ORDER BY synced_at,uuid
         $limit
         ";
 

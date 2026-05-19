@@ -52,17 +52,88 @@ class School{
                 COALESCE(
                     NULLIF(do_uuid.name, ''),
                     NULLIF(do_dist.name, '')
-                ) district_name
+                ) district_name,
+
+                s.classrooms_oid,
+                s.wash_oids,
+                s.electricity_oids,
+                s.mno_oids,
+                s.learning_materials_oids,
+
+                sf.receives_feeding,
+                CASE sf.supply_period_oid
+                    WHEN 'first_term'  THEN 'First Term'
+                    WHEN 'second_term' THEN 'Second Term'
+                    WHEN 'third_term'  THEN 'Third Term'
+                END supply_period,
+                sf.received_at,
+                CASE sf.supplied_by_oid
+                    WHEN 'gosl'  THEN 'GoSL'
+                    WHEN 'plan'  THEN 'PLAN'
+                    WHEN 'wfp'   THEN 'WFP'
+                    WHEN 'crs'   THEN 'CRS'
+                    WHEN 'other' THEN CONCAT('Other: ', COALESCE(sf.supplied_by_other, ''))
+                END supplied_by,
+                sf.qty_rice,
+                sf.qty_beans,
+                sf.qty_gari,
+                sf.qty_veg_oil,
+                sf.qty_salt,
+                sf.updated_at feeding_updated_at
+
             FROM school s
             LEFT JOIN option_list ol ON ol.item_id = s.school_education_level_oid AND ol.list_name = 'school_education_level'
             LEFT JOIN teacher t ON t.school_uuid = s.uuid
                 AND t.teacher_role_oid = CASE WHEN s.school_education_level_oid IN ('jss', 'sss') THEN 'principal' ELSE 'head_teacher' END
+                AND t.deleted_at IS NULL
             LEFT JOIN person p ON p.uuid = t.person_uuid
             LEFT JOIN district_office do_uuid ON do_uuid.uuid = s.district_office_uuid
             LEFT JOIN district_office do_dist ON do_dist.district_id = s.district_id
+            LEFT JOIN school_feeding sf ON sf.uuid = (
+                SELECT uuid FROM school_feeding
+                WHERE school_uuid = s.uuid
+                  AND deleted_at IS NULL
+                ORDER BY updated_at DESC
+                LIMIT 1
+            )
             WHERE s.uuid = ?
         ";
         return DB::selectOne($sql,[$schoolUuid]);
+    }
+
+    private static function decodeOids(?string $oidsString, array $map): string
+    {
+        if (empty($oidsString)) return '—';
+        $names = array_map(
+            fn($oid) => $map[trim($oid)] ?? trim($oid),
+            explode(',', $oidsString)
+        );
+        return implode(', ', array_filter($names));
+    }
+
+    public static function classroomsLabel(?string $oid): string
+    {
+        return self::decodeOids($oid, ['permanent' => 'Permanent', 'temporary' => 'Temporary']);
+    }
+
+    public static function washLabel(?string $oids): string
+    {
+        return self::decodeOids($oids, ['none' => 'None', 'water' => 'Water', 'toilet' => 'Toilet', 'bin' => 'Bin']);
+    }
+
+    public static function electricityLabel(?string $oids): string
+    {
+        return self::decodeOids($oids, ['none' => 'None', 'edsa' => 'EDSA', 'generator' => 'Generator', 'solar' => 'Solar', 'power_bank' => 'Power Bank']);
+    }
+
+    public static function mnoLabel(?string $oids): string
+    {
+        return self::decodeOids($oids, ['none' => 'None', 'africell' => 'Africell', 'orange' => 'Orange', 'qcell' => 'Qcell', 'sierra_tel' => 'Sierra Tel']);
+    }
+
+    public static function learningMaterialsLabel(?string $oids): string
+    {
+        return self::decodeOids($oids, ['textbooks' => 'Textbooks', 'teaching_aid' => 'Teaching Aid', 'science_equipment' => 'Science Equipment']);
     }
 
     public function getTeacherTable($schoolUuid, $date, $isDistrictOfficerOrAbove){
@@ -267,6 +338,88 @@ class School{
                 teacher_name
         ";
         return DB::select($sql,[$schoolUuid]);
+    }
+
+    public function schoolsTable($districtId = null): array
+    {
+        $whereClause = $districtId ? "AND s.district_id = " . intval($districtId) : "";
+
+        $sql = "
+            SELECT
+                s.uuid                                          school_uuid,
+                s.name                                          school_name,
+                NULLIF(s.emis_id, '')                           emis_id,
+                ol.item_name                                    education_level,
+                COALESCE(
+                    NULLIF(do_uuid.name, ''),
+                    NULLIF(do_dist.name, '')
+                )                                               district,
+                COALESCE(g.name, '')                            chiefdom,
+                NULLIF(CONCAT_WS(' ', p.first_name, p.middle_name, p.last_name), '') head_teacher,
+                s.wash_oids,
+                s.classrooms_oid,
+                s.electricity_oids,
+                s.mno_oids,
+                s.learning_materials_oids,
+                s.receives_feeding,
+                COALESCE(lc.learner_count, 0)                                               learner_count,
+                COALESCE(ptc.payroll_teacher_count, 0)                                      payroll_teacher_count,
+                COALESCE(tc.teacher_count, 0) - COALESCE(ptc.payroll_teacher_count, 0)     non_payroll_teacher_count,
+                COALESCE(cc.class_count, 0)                                                 class_count,
+                ay.academic_year_name
+            FROM school s
+            LEFT JOIN option_list ol
+                ON ol.item_id = s.school_education_level_oid
+               AND ol.list_name = 'school_education_level'
+            LEFT JOIN district_office do_uuid ON do_uuid.uuid        = s.district_office_uuid
+            LEFT JOIN district_office do_dist ON do_dist.district_id = s.district_id
+            LEFT JOIN geo g ON g.id = s.chiefdom_id
+            LEFT JOIN teacher ht
+                ON ht.school_uuid = s.uuid
+               AND ht.teacher_role_oid = CASE WHEN s.school_education_level_oid IN ('jss','sss') THEN 'principal' ELSE 'head_teacher' END
+               AND ht.deleted_at IS NULL
+            LEFT JOIN person p ON p.uuid = ht.person_uuid
+            LEFT JOIN (
+                SELECT sg.school_uuid, COUNT(DISTINCT sle.learner_uuid) learner_count
+                FROM school_learner_enrolment sle
+                INNER JOIN school_group sg ON sg.uuid = sle.school_group_uuid
+                WHERE sle.deleted_at IS NULL
+                  AND sle.academic_year = (SELECT academic_year FROM school_academic_year WHERE active = 1 LIMIT 1)
+                GROUP BY sg.school_uuid
+            ) lc ON lc.school_uuid = s.uuid
+            LEFT JOIN (
+                SELECT school_uuid, COUNT(*) teacher_count
+                FROM teacher
+                WHERE deleted_at IS NULL
+                GROUP BY school_uuid
+            ) tc ON tc.school_uuid = s.uuid
+            LEFT JOIN (
+                SELECT school_uuid, COUNT(*) payroll_teacher_count
+                FROM teacher
+                WHERE deleted_at IS NULL
+                  AND employment_status_oid = 'payroll'
+                GROUP BY school_uuid
+            ) ptc ON ptc.school_uuid = s.uuid
+            LEFT JOIN (
+                SELECT school_uuid, COUNT(*) class_count
+                FROM school_group
+                WHERE deleted_at IS NULL
+                  AND academic_year = (SELECT academic_year FROM school_academic_year WHERE active = 1 LIMIT 1)
+                GROUP BY school_uuid
+            ) cc ON cc.school_uuid = s.uuid
+            CROSS JOIN (
+                SELECT academic_year_name
+                FROM school_academic_year
+                WHERE active = 1
+                LIMIT 1
+            ) ay
+            WHERE s.deleted_at IS NULL
+              AND s.active = 1
+              $whereClause
+            ORDER BY COALESCE(do_uuid.name, do_dist.name), s.name
+        ";
+
+        return DB::select($sql);
     }
 
 }

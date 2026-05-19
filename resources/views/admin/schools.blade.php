@@ -23,8 +23,11 @@
 {{--                                                <th class="text-left">EMIS ID</th>--}}
 {{--                                                <th class="text-left">Payroll SID</th>--}}
                             <th class="text-left">Education Level</th>
-                            <th class="text-left">Address</th>
                             <th class="text-left">District Office</th>
+                            <th class="text-left">Chiefdom</th>
+                            <th class="text-left">Council</th>
+                            <th class="text-left">Section</th>
+                            <th class="text-left">Town</th>
                             <th class="text-left">Created at</th>
                             <th class="text-left">Updated at</th>
                         </tr>
@@ -79,6 +82,19 @@
                     type: "select",
                     placeholderDisabled: false,
                     placeholder: ""
+                }, {
+                    label: "Chiefdom:",
+                    name: "chiefdom.name",
+                    type: 'readonly'
+                }, {
+                    label: "Council:",
+                    name: "school.council_name"
+                }, {
+                    label: "Section:",
+                    name: "school.section_name"
+                }, {
+                    label: "Town:",
+                    name: "school.town_name"
                 }, {
                     label: "Address:",
                     name: "school.address"
@@ -144,8 +160,11 @@
                 // {data: "school.emis_id"},
                 // {data: "school.payroll_sid"},
                 {data: "education_level.item_name"},
-                {data: "school.address"},
                 {data: "district_office.name"},
+                {data: "chiefdom.name"},
+                {data: "school.council_name"},
+                {data: "school.section_name"},
+                {data: "school.town_name"},
                 {data: "school.created_at"},
                 {data: "school.updated_at"},
             ],

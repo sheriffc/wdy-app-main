@@ -266,6 +266,216 @@
         </div>
         @endif
 
+        {{-- ── REPORT CARD ── --}}
+        @if(count($reportCard) > 0)
+        @php
+            $gradeColour = fn($g) => match($g) {
+                'A'     => 'bg-success text-white',
+                'B'     => 'bg-info text-white',
+                'C'     => 'bg-warning text-dark',
+                'D'     => 'bg-secondary text-white',
+                'F'     => 'bg-danger text-white',
+                default => 'bg-light text-muted border',
+            };
+            $calcGrade = function($avg) {
+                if ($avg === null) return '—';
+                if ($avg >= 75) return 'A';
+                if ($avg >= 65) return 'B';
+                if ($avg >= 50) return 'C';
+                if ($avg >= 40) return 'D';
+                return 'F';
+            };
+            $termAvg = function($t) {
+                if (!$t || $t->assessment_1_score === null || $t->assessment_2_score === null) return null;
+                return ($t->assessment_1_score + $t->assessment_2_score) / 2;
+            };
+            $fmtScore = fn($v) => $v !== null
+                ? ($v == floor($v) ? (int)$v : number_format($v, 1))
+                : '—';
+        @endphp
+
+        {{-- Year filter --}}
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-2">
+                <label for="yearFilter" class="fw-semibold mb-0 text-nowrap">Filter by Academic Year:</label>
+                <select id="yearFilter" class="form-select form-select-sm" style="width:auto">
+                    @foreach($reportCard as $year => $_)
+                    <option value="{{ $year }}" {{ $loop->first ? 'selected' : '' }}>{{ $year }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        @foreach($reportCard as $year => $yearData)
+        <div class="col-12 report-card-year" data-year="{{ $year }}">
+            <div class="card">
+                <div class="card-header fw-bold d-flex align-items-baseline gap-3">
+                    <span>Academic Performance &mdash; {{ $year }}</span>
+                    @if($yearData['class_label'])
+                        <span class="text-muted fw-normal small">{{ $yearData['class_label'] }}</span>
+                    @endif
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0" style="min-width:900px">
+                            <thead>
+                                <tr class="table-light">
+                                    <th rowspan="2" class="align-middle" style="min-width:160px">Subject</th>
+                                    <th colspan="4" class="text-center border-start">First Term</th>
+                                    <th colspan="4" class="text-center border-start">Second Term</th>
+                                    <th colspan="4" class="text-center border-start">Third Term</th>
+                                    <th rowspan="2" class="text-center align-middle border-start fw-bold table-primary" style="width:90px">Yearly Average</th>
+                                </tr>
+                                <tr class="table-light">
+                                    {{-- First Term sub-headers --}}
+                                    <th class="text-center small border-start" style="width:75px">Test 1</th>
+                                    <th class="text-center small" style="width:75px">Test 2</th>
+                                    <th class="text-center small" style="width:60px">Avg</th>
+                                    <th class="text-center small" style="width:55px">Grade</th>
+                                    {{-- Second Term sub-headers --}}
+                                    <th class="text-center small border-start" style="width:75px">Test 1</th>
+                                    <th class="text-center small" style="width:75px">Test 2</th>
+                                    <th class="text-center small" style="width:60px">Avg</th>
+                                    <th class="text-center small" style="width:55px">Grade</th>
+                                    {{-- Third Term sub-headers --}}
+                                    <th class="text-center small border-start" style="width:75px">Test 1</th>
+                                    <th class="text-center small" style="width:75px">Final Exam</th>
+                                    <th class="text-center small" style="width:60px">Avg</th>
+                                    <th class="text-center small" style="width:55px">Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($yearData['subjects'] as $subject)
+                                @php
+                                    $ft = $subject['first_term'];
+                                    $st = $subject['second_term'];
+                                    $tt = $subject['third_term'];
+                                    $ftAvg = $termAvg($ft);
+                                    $stAvg = $termAvg($st);
+                                    $ttAvg = $termAvg($tt);
+                                    $termAvgs = array_filter([$ftAvg, $stAvg, $ttAvg], fn($a) => $a !== null);
+                                    $yearlyAvg = count($termAvgs) > 0 ? array_sum($termAvgs) / count($termAvgs) : null;
+                                @endphp
+                                <tr>
+                                    <td class="fw-semibold">{{ $subject['subject_name'] }}</td>
+                                    {{-- First Term --}}
+                                    <td class="text-center border-start">{{ $fmtScore($ft->assessment_1_score ?? null) }}</td>
+                                    <td class="text-center">{{ $fmtScore($ft->assessment_2_score ?? null) }}</td>
+                                    <td class="text-center">{{ $ftAvg !== null ? round($ftAvg) : '—' }}</td>
+                                    <td class="text-center">
+                                        @php $g = $calcGrade($ftAvg); @endphp
+                                        @if($ftAvg !== null)<span class="badge {{ $gradeColour($g) }}">{{ $g }}</span>@else<span class="text-muted">—</span>@endif
+                                    </td>
+                                    {{-- Second Term --}}
+                                    <td class="text-center border-start">{{ $fmtScore($st->assessment_1_score ?? null) }}</td>
+                                    <td class="text-center">{{ $fmtScore($st->assessment_2_score ?? null) }}</td>
+                                    <td class="text-center">{{ $stAvg !== null ? round($stAvg) : '—' }}</td>
+                                    <td class="text-center">
+                                        @php $g = $calcGrade($stAvg); @endphp
+                                        @if($stAvg !== null)<span class="badge {{ $gradeColour($g) }}">{{ $g }}</span>@else<span class="text-muted">—</span>@endif
+                                    </td>
+                                    {{-- Third Term --}}
+                                    <td class="text-center border-start">{{ $fmtScore($tt->assessment_1_score ?? null) }}</td>
+                                    <td class="text-center">{{ $fmtScore($tt->assessment_2_score ?? null) }}</td>
+                                    <td class="text-center">{{ $ttAvg !== null ? round($ttAvg) : '—' }}</td>
+                                    <td class="text-center">
+                                        @php $g = $calcGrade($ttAvg); @endphp
+                                        @if($ttAvg !== null)<span class="badge {{ $gradeColour($g) }}">{{ $g }}</span>@else<span class="text-muted">—</span>@endif
+                                    </td>
+                                    {{-- Yearly Average --}}
+                                    <td class="text-center fw-bold border-start table-primary">{{ $yearlyAvg !== null ? round($yearlyAvg) : '—' }}</td>
+                                </tr>
+                                @endforeach
+
+                                @php
+                                    $ftSum = null; $stSum = null; $ttSum = null;
+                                    $ftN   = 0;    $stN   = 0;    $ttN   = 0;
+                                    foreach ($yearData['subjects'] as $s) {
+                                        $a = $termAvg($s['first_term']);
+                                        if ($a !== null) { $ftSum = ($ftSum ?? 0) + $a; $ftN++; }
+                                        $a = $termAvg($s['second_term']);
+                                        if ($a !== null) { $stSum = ($stSum ?? 0) + $a; $stN++; }
+                                        $a = $termAvg($s['third_term']);
+                                        if ($a !== null) { $ttSum = ($ttSum ?? 0) + $a; $ttN++; }
+                                    }
+                                    $ftPct = $ftN > 0 ? round(($ftSum / (100 * $ftN)) * 100) : null;
+                                    $stPct = $stN > 0 ? round(($stSum / (100 * $stN)) * 100) : null;
+                                    $ttPct = $ttN > 0 ? round(($ttSum / (100 * $ttN)) * 100) : null;
+                                    $termSums = array_filter([$ftSum, $stSum, $ttSum], fn($v) => $v !== null);
+                                    $yearlySum = count($termSums) > 0 ? array_sum($termSums) / count($termSums) : null;
+                                    $termPcts = array_filter([$ftPct, $stPct, $ttPct], fn($v) => $v !== null);
+                                    $yearlyPct = count($termPcts) > 0 ? round(array_sum($termPcts) / count($termPcts)) : null;
+                                    $conductInfo = function($pct) {
+                                        if ($pct === null) return null;
+                                        if ($pct <= 49) return ['text' => 'Poor',      'badge' => 'bg-danger text-white'];
+                                        if ($pct <= 69) return ['text' => 'Good',      'badge' => 'bg-warning text-dark'];
+                                        if ($pct <= 89) return ['text' => 'Very Good', 'badge' => 'bg-primary text-white'];
+                                        return                  ['text' => 'Excellent', 'badge' => 'bg-success text-white'];
+                                    };
+                                @endphp
+
+                                {{-- Total --}}
+                                <tr class="table-light fw-bold border-top">
+                                    <td>Total</td>
+                                    <td colspan="4" class="text-center border-start">{{ $ftSum !== null ? round($ftSum) : '—' }}</td>
+                                    <td colspan="4" class="text-center border-start">{{ $stSum !== null ? round($stSum) : '—' }}</td>
+                                    <td colspan="4" class="text-center border-start">{{ $ttSum !== null ? round($ttSum) : '—' }}</td>
+                                    <td class="text-center fw-bold border-start table-primary">{{ $yearlySum !== null ? round($yearlySum) : '—' }}</td>
+                                </tr>
+
+                                {{-- Percentage --}}
+                                <tr class="table-light fw-bold">
+                                    <td>Percentage</td>
+                                    <td colspan="4" class="text-center border-start">{{ $ftPct !== null ? $ftPct . '%' : '—' }}</td>
+                                    <td colspan="4" class="text-center border-start">{{ $stPct !== null ? $stPct . '%' : '—' }}</td>
+                                    <td colspan="4" class="text-center border-start">{{ $ttPct !== null ? $ttPct . '%' : '—' }}</td>
+                                    <td class="text-center fw-bold border-start table-primary">{{ $yearlyPct !== null ? $yearlyPct . '%' : '—' }}</td>
+                                </tr>
+
+                                {{-- Conduct --}}
+                                @php $ftC = $conductInfo($ftPct); $stC = $conductInfo($stPct); $ttC = $conductInfo($ttPct); $yC = $conductInfo($yearlyPct); @endphp
+                                <tr class="table-light fw-bold">
+                                    <td>Conduct</td>
+                                    <td colspan="4" class="text-center border-start">
+                                        @if($ftC)<span class="badge {{ $ftC['badge'] }}">{{ $ftC['text'] }}</span>@else<span class="text-muted">—</span>@endif
+                                    </td>
+                                    <td colspan="4" class="text-center border-start">
+                                        @if($stC)<span class="badge {{ $stC['badge'] }}">{{ $stC['text'] }}</span>@else<span class="text-muted">—</span>@endif
+                                    </td>
+                                    <td colspan="4" class="text-center border-start">
+                                        @if($ttC)<span class="badge {{ $ttC['badge'] }}">{{ $ttC['text'] }}</span>@else<span class="text-muted">—</span>@endif
+                                    </td>
+                                    <td class="text-center fw-bold border-start table-primary">
+                                        @if($yC)<span class="badge {{ $yC['badge'] }}">{{ $yC['text'] }}</span>@else<span class="text-muted">—</span>@endif
+                                    </td>
+                                </tr>
+
+                                {{-- Performance Outcome --}}
+                                @php
+                                    $outcome = function($pct) {
+                                        if ($pct === null) return null;
+                                        return $pct > 49
+                                            ? ['text' => 'Promoted',       'badge' => 'bg-success text-white']
+                                            : ['text' => 'To be repeated', 'badge' => 'bg-danger text-white'];
+                                    };
+                                    $ftO = $outcome($ftPct); $stO = $outcome($stPct); $ttO = $outcome($ttPct); $yO = $outcome($yearlyPct);
+                                @endphp
+                                <tr class="table-light fw-bold">
+                                    <td>Performance Outcome</td>
+                                    <td colspan="12" class="border-start"></td>
+                                    <td class="text-center fw-bold border-start table-primary">
+                                        @if($yO)<span class="badge {{ $yO['badge'] }}">{{ $yO['text'] }}</span>@else<span class="text-muted">—</span>@endif
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endforeach
+        @endif
+
         {{-- ── SCHOOL HISTORY ── --}}
         @if(count($schoolHistory) > 0)
         <div class="col-12">
@@ -373,6 +583,18 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        const yearFilter = document.getElementById('yearFilter');
+        if (yearFilter) {
+            function applyYearFilter() {
+                const selected = yearFilter.value;
+                document.querySelectorAll('.report-card-year').forEach(el => {
+                    el.style.display = el.dataset.year === selected ? '' : 'none';
+                });
+            }
+            yearFilter.addEventListener('change', applyYearFilter);
+            applyYearFilter(); // show only the most recent year on load
+        }
+
         attTable = $('#dt-attendance').DataTable({
             data: [],
             order: [[0, 'desc']],

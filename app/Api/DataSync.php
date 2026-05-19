@@ -315,6 +315,9 @@ class DataSync
             'media_photo'=>'mediaPhoto',
             'person_fingerprint'=>'personFingerprint',
             'teacher_timetable'=>'teacherTimetable',
+            'school_feeding'=>'schoolFeeding',
+            'school_feeding_stock'=>'schoolFeedingStock',
+            'learner_performance'=>'learnerPerformance',
         ];
 
         $installId = (isset($params['install_id'])) ? $params['install_id'] : "no_install_id_provided";

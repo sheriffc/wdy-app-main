@@ -124,6 +124,18 @@ Route::get('/learner-profile/{uuid}',[App\Http\Controllers\PublicController::cla
 
 Route::post('/api/learner-profile/attendance-records/{uuid}',[App\Http\Controllers\PublicController::class, 'getLearnerAttendanceRecords'])->name('learner-profile/attendance-records-api');
 
+Route::get('/schools',[App\Http\Controllers\PublicController::class, 'schoolsReport'])->name('schools');
+
+Route::post('/api/schools/table',[App\Http\Controllers\PublicController::class, 'getSchoolsTable'])->name('schools-table-api');
+
+Route::get('/school-feeding',[App\Http\Controllers\PublicController::class, 'schoolFeedingReport'])->name('school-feeding');
+
+Route::post('/api/school-feeding/table',[App\Http\Controllers\PublicController::class, 'getSchoolFeedingTable'])->name('school-feeding-table-api');
+
+Route::get('/school-feeding-secretariat',[App\Http\Controllers\PublicController::class, 'schoolFeedingSecretariat'])->name('school-feeding-secretariat');
+
+Route::post('/api/school-feeding-secretariat/table',[App\Http\Controllers\PublicController::class, 'getSchoolFeedingSecretariatTable'])->name('school-feeding-secretariat-table-api');
+
 
 
 Auth::routes();
