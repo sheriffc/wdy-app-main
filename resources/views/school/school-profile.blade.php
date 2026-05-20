@@ -187,6 +187,7 @@
                                     <th class="text-start">Gender</th>
                                     <th class="text-start">Date of Birth</th>
                                     <th class="text-start">Year Group</th>
+                                    <th class="text-start">Classroom</th>
                                     <th class="text-start">Attendance Status</th>
                                     <th class="text-start">Absent Reason</th>
                                 </tr>
@@ -522,6 +523,11 @@
                     {
                         data: "year_group",
                         className: 'text-center'
+                    },
+                    {
+                        data: "classroom_name",
+                        className: 'text-center',
+                        defaultContent: ''
                     },
                     {
                         data: "attendance_status",

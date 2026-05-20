@@ -254,6 +254,7 @@ class School{
                 l.uuid learner_uuid,
                 ols.item_name gender,
                 olsgl.item_name year_group,
+                sg.school_group_name classroom_name,
                 pa.attendance_status,
                 COALESCE(ol_ar.item_name, pa.absent_reason_other) absent_reason,
                 {$confidentialColumns}
