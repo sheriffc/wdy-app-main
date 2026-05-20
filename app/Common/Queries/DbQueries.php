@@ -23,11 +23,12 @@ class DbQueries {
     public static function getActiveDistricts(){
         $sql = "
             SELECT
-                name,
-                district_id
-            FROM district_office
-            WHERE district_id IS NOT NULL
-                AND active = true
+                do2.name,
+                g.id AS district_id
+            FROM district_office do2
+            JOIN geo g ON g.name = do2.name AND g.type = 2
+            WHERE do2.active = true
+            ORDER BY do2.name
         ";
         return DB::select($sql);
     }
