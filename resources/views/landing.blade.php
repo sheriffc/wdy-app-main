@@ -1237,13 +1237,19 @@
                         // zoom to district
                         if(selectedDistrict === undefined || selectedDistrict === null || selectedDistrict === ""){
                             //reset zoom
+                            martenalStatusMap.series[0].update({ mapData: slDistrictsGeoJson }, true);
                             martenalStatusMap.mapView.setView([-11.5935,8.6190],0, true, false);
                         }else{
                             let districtId = parseInt(selectedDistrict);
                             let viewConfig = districtGeoLocation[districtId];
-
+                            let filteredGeoJson = {
+                                type: 'FeatureCollection',
+                                features: slDistrictsGeoJson.features.filter(function(f){
+                                    return f.properties.CS_Dis_Num == viewConfig.geoJsonId;
+                                })
+                            };
+                            martenalStatusMap.series[0].update({ mapData: filteredGeoJson }, true);
                             martenalStatusMap.mapView.setView([viewConfig.lon,viewConfig.lat],viewConfig.zoom, true, false);
-
                         }
 
                         let maternalDistricts = []
@@ -1660,13 +1666,19 @@
                     // zoom to district
                     if(selectedDistrict === undefined || selectedDistrict === null || selectedDistrict === ""){
                         //reset zoom
+                        specialNeedsLocatedMap.series[0].update({ mapData: slDistrictsGeoJson }, true);
                         specialNeedsLocatedMap.mapView.setView([-11.5935,8.6190],0, true, false);
                     }else{
                         let districtId = parseInt(selectedDistrict);
                         let viewConfig = districtGeoLocation[districtId];
-
+                        let filteredGeoJson = {
+                            type: 'FeatureCollection',
+                            features: slDistrictsGeoJson.features.filter(function(f){
+                                return f.properties.CS_Dis_Num == viewConfig.geoJsonId;
+                            })
+                        };
+                        specialNeedsLocatedMap.series[0].update({ mapData: filteredGeoJson }, true);
                         specialNeedsLocatedMap.mapView.setView([viewConfig.lon,viewConfig.lat],viewConfig.zoom, true, false);
-
                     }
 
                     //find the district and paint it
@@ -2067,13 +2079,19 @@
                     // zoom to district
                     if(selectedDistrict === undefined || selectedDistrict === null || selectedDistrict === ""){
                         //reset zoom
+                        specialNeedsAbsenteeismMap.series[0].update({ mapData: slDistrictsGeoJson }, true);
                         specialNeedsAbsenteeismMap.mapView.setView([-11.5935,8.6190],0, true, false);
                     }else{
                         let districtId = parseInt(selectedDistrict);
                         let viewConfig = districtGeoLocation[districtId];
-
+                        let filteredGeoJson = {
+                            type: 'FeatureCollection',
+                            features: slDistrictsGeoJson.features.filter(function(f){
+                                return f.properties.CS_Dis_Num == viewConfig.geoJsonId;
+                            })
+                        };
+                        specialNeedsAbsenteeismMap.series[0].update({ mapData: filteredGeoJson }, true);
                         specialNeedsAbsenteeismMap.mapView.setView([viewConfig.lon,viewConfig.lat],viewConfig.zoom, true, false);
-
                     }
 
                     let specialNeedsByDistrict = [];
@@ -2387,16 +2405,22 @@
                 success: function (response) {
                     let schools = response.data.schools
 
-                             // // zoom to district
+                    // zoom to district
                     if(selectedDistrict === undefined || selectedDistrict === null || selectedDistrict === ""){
                         //reset zoom
+                        atRiskLearnersMap.series[0].update({ mapData: slDistrictsGeoJson }, true);
                         atRiskLearnersMap.mapView.setView([-11.5935,8.6190],0, true, false);
                     }else{
                         let districtId = parseInt(selectedDistrict);
                         let viewConfig = districtGeoLocation[districtId];
-
+                        let filteredGeoJson = {
+                            type: 'FeatureCollection',
+                            features: slDistrictsGeoJson.features.filter(function(f){
+                                return f.properties.CS_Dis_Num == viewConfig.geoJsonId;
+                            })
+                        };
+                        atRiskLearnersMap.series[0].update({ mapData: filteredGeoJson }, true);
                         atRiskLearnersMap.mapView.setView([viewConfig.lon,viewConfig.lat],viewConfig.zoom, true, false);
-
                     }
 
                     // let specialNeedsByDistrict = [];
