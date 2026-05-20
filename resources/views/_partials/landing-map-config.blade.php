@@ -24,6 +24,7 @@
 
     let attendanceMap = new Highcharts.mapChart('school-map-chart-container', {
         chart: {
+            animation: false,
             events: {
                 load: function () {
                     {{--
@@ -56,7 +57,7 @@
         },
 
         mapView: {
-            maxZoom: undefined
+            maxZoom: 8
         },
 
         tooltip: {

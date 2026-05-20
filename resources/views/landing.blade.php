@@ -1046,6 +1046,10 @@
                     let femaleClassEnrolement = moveElement(classEnrolmentByGender.females,6)
                     let maleClassEnrolment = moveElement(classEnrolmentByGender.males,6)
 
+                    const ayData = academicYearsData.find(y => y.academic_year == selectedAcademicYear);
+                    const ayLabel = ayData ? (ayData.academic_year_name || ayData.academic_year) : selectedAcademicYear;
+                    classEnrolmentChart.setTitle({ text: 'Class Enrolment for AY ' + ayLabel });
+
                     classEnrolmentChart.xAxis[0].setCategories(classCategories);
 
                     classEnrolmentChart.series[0].setData(femaleClassEnrolement);
@@ -1144,7 +1148,7 @@
                     height:"73%"
                 },
                 title: {
-                    text: 'Class Enrolment for AY 2022',
+                    text: 'Class Enrolment',
                     align: 'center'
                 },
                 yAxis: {
@@ -1368,6 +1372,7 @@
 
         let martenalStatusMap = new Highcharts.mapChart('maternal-status-map', {
             chart: {
+                animation: false,
             },
             title: {
                 text:""
@@ -1384,7 +1389,7 @@
             },
 
             mapView: {
-                maxZoom: undefined
+                maxZoom: 8
             },
 
             tooltip: {
@@ -1404,7 +1409,7 @@
             },
             series: [
                 {
-                    mapData: {!! file_get_contents('json/sl_districts.geojson') !!},
+                    mapData: slDistrictsGeoJson,
                     name: 'Districts',
                     type: 'map',
                     showInLegend: false,
@@ -1912,6 +1917,7 @@
 
         let specialNeedsLocatedMap = new Highcharts.mapChart('special-needs-located-map', {
             chart: {
+                animation: false,
             },
             title: {
                 text:""
@@ -1928,7 +1934,7 @@
             },
 
             mapView: {
-                maxZoom: undefined
+                maxZoom: 8
             },
 
             tooltip: {
@@ -1955,7 +1961,7 @@
             },
             series: [
                 {
-                    mapData: {!! file_get_contents('json/sl_districts.geojson') !!},
+                    mapData: slDistrictsGeoJson,
                     name: 'Districts',
                     type: 'map',
                     showInLegend: false,
@@ -2230,6 +2236,7 @@
 
         let specialNeedsAbsenteeismMap = new Highcharts.mapChart('special-needs-absenteeism-map', {
             chart: {
+                animation: false,
             },
             title: {
                 text:""
@@ -2246,7 +2253,7 @@
             },
 
             mapView: {
-                maxZoom: undefined
+                maxZoom: 8
             },
 
             tooltip: {
@@ -2265,7 +2272,7 @@
             },
             series: [
                 {
-                    mapData: {!! file_get_contents('json/sl_districts.geojson') !!},
+                    mapData: slDistrictsGeoJson,
                     name: 'Districts',
                     type: 'map',
                     showInLegend: false,
@@ -2852,6 +2859,7 @@
 
         let atRiskLearnersMap = new Highcharts.mapChart('at-risk-learners-map', {
             chart: {
+                animation: false,
             },
             title: {
                 text:"Where are at risk learners located?"
@@ -2868,7 +2876,7 @@
             },
 
             mapView: {
-                maxZoom: undefined
+                maxZoom: 8
             },
             tooltip: {
                 pointFormatter: function(){
@@ -2886,7 +2894,7 @@
             },
             series: [
                 {
-                    mapData: {!! file_get_contents('json/sl_districts.geojson') !!},
+                    mapData: slDistrictsGeoJson,
                     name: 'Districts',
                     type: 'map',
                     showInLegend: false,
