@@ -308,6 +308,7 @@ class School{
                 AND sle.academic_year = (SELECT academic_year FROM school_academic_year WHERE active = 1 LIMIT 1)
                 AND (sle.deleted_at IS NULL or sle.deleted_at >= DATE_ADD(CAST(? AS DATETIME), INTERVAL 1 DAY))
             WHERE sg.school_uuid = ?
+                AND sg.academic_year = (SELECT academic_year FROM school_academic_year WHERE active = 1 LIMIT 1)
                 AND (sg.created_at < DATE_ADD(CAST(? AS DATETIME), INTERVAL 1 DAY))
                 AND (sg.deleted_at IS NULL OR sg.deleted_at >= DATE_ADD(CAST(? AS DATETIME), INTERVAL 1 DAY))
             GROUP BY sg.uuid
