@@ -57,7 +57,7 @@
         },
 
         mapView: {
-            maxZoom: 8
+            maxZoom: 14
         },
 
         tooltip: {

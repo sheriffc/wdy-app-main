@@ -1395,7 +1395,7 @@
             },
 
             mapView: {
-                maxZoom: 8
+                maxZoom: 14
             },
 
             tooltip: {
@@ -1946,7 +1946,7 @@
             },
 
             mapView: {
-                maxZoom: 8
+                maxZoom: 14
             },
 
             tooltip: {
@@ -2271,7 +2271,7 @@
             },
 
             mapView: {
-                maxZoom: 8
+                maxZoom: 14
             },
 
             tooltip: {
@@ -2900,7 +2900,7 @@
             },
 
             mapView: {
-                maxZoom: 8
+                maxZoom: 14
             },
             tooltip: {
                 pointFormatter: function(){
