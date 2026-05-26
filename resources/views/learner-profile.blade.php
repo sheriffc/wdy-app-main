@@ -543,6 +543,7 @@
                                 <th>AM</th>
                                 <th>PM</th>
                                 <th>Absent Reason</th>
+                                <th>Attendance Status</th>
                                 <th>School</th>
                             </tr>
                         </thead>
@@ -595,9 +596,22 @@
             applyYearFilter(); // show only the most recent year on load
         }
 
+        function getAttendanceInfo(amOid, pmOid) {
+            if (amOid === 'present' && pmOid === 'present') return { label: 'Present',         color: '#c7eed8' };
+            if (amOid === 'absent'  && pmOid === 'absent')  return { label: 'Absent',          color: '#f7c6c5' };
+            if (amOid === 'absent'  && pmOid === 'present') return { label: 'Late',            color: '#fffacc' };
+            if (amOid === 'present' && pmOid === 'absent')  return { label: 'Early Departure', color: '#FFDDB0' };
+            if (amOid || pmOid)                             return { label: '',                color: '#d6d8db' };
+            return { label: '—', color: null };
+        }
+
         attTable = $('#dt-attendance').DataTable({
             data: [],
             order: [[0, 'desc']],
+            createdRow: function(row, data) {
+                const info = getAttendanceInfo(data.attendance_am_status_oid, data.attendance_pm_status_oid);
+                if (info.color) $(row).css('background-color', info.color);
+            },
             columns: [
                 { data: 'date_formatted', defaultContent: '—' },
                 { data: 'attendance_am',  defaultContent: '—', className: 'text-center' },
@@ -608,6 +622,14 @@
                     render: function(data, type, full) {
                         if (full.absent_reason_other && !data) return full.absent_reason_other;
                         return data || '—';
+                    }
+                },
+                {
+                    data: 'attendance_am_status_oid',
+                    className: 'text-center fw-semibold',
+                    defaultContent: '—',
+                    render: function(data, type, full) {
+                        return getAttendanceInfo(full.attendance_am_status_oid, full.attendance_pm_status_oid).label;
                     }
                 },
                 { data: 'school_name', defaultContent: '—' },

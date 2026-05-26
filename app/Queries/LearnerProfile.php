@@ -148,6 +148,8 @@ class LearnerProfile {
                 DATE_FORMAT(pa.date, '%W, %D %b %Y') date_formatted,
                 ol_am.item_name attendance_am,
                 ol_pm.item_name attendance_pm,
+                pa.attendance_am_status_oid,
+                pa.attendance_pm_status_oid,
                 pa.absent_reason_oid,
                 ol_ar.item_name absent_reason,
                 pa.absent_reason_other,
