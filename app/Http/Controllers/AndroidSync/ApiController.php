@@ -236,7 +236,7 @@ class ApiController extends Controller
         $schoolUuid = $params['school_uuid'] ?? null;
 
         if ($type === 'nonpayroll') {
-            $teachers = $this->fetchNonPayrollTeachers($query);
+            $teachers = $this->fetchNonPayrollTeachers($query, $schoolUuid);
         } else {
             $teachers = $this->fetchPayrollTeachers($query, $schoolUuid);
         }
@@ -278,7 +278,7 @@ class ApiController extends Controller
         return $q->orderByRaw("CONCAT(COALESCE(tp.last_name,''),tp.first_name)")->get()->toArray();
     }
 
-    private function fetchNonPayrollTeachers(string $query): array {
+    private function fetchNonPayrollTeachers(string $query, ?string $schoolUuid): array {
         $q = DB::table('teacher_payroll as tp')
             ->whereNull('tp.pin')
             ->where(function ($q2) {
@@ -288,11 +288,24 @@ class ApiController extends Controller
                 TRIM(REPLACE(CONCAT(COALESCE(tp.last_name,''),', ',COALESCE(tp.first_name,''),' ',COALESCE(tp.middle_name,'')),'  ',' ')) AS full_name,
                 tp.sex, tp.date_of_birth, '' AS pin, tp.nin, tp.nassit_number, tp.created_at, tp.updated_at");
 
+        if ($schoolUuid) {
+            $q->whereNotExists(function ($sub) use ($schoolUuid) {
+                $sub->select(DB::raw(1))
+                    ->from('teacher as t')
+                    ->join('person as p', 'p.uuid', '=', 't.person_uuid')
+                    ->where('t.school_uuid', $schoolUuid)
+                    ->where(function ($s) { $s->whereNull('t.deleted_at')->orWhere('t.deleted_at', ''); })
+                    ->whereRaw('p.nin = tp.nin');
+            });
+        }
+
         if ($query !== '') {
             foreach (preg_split('/\s+/', $query) as $term) {
                 $q->where(DB::raw("CONCAT(COALESCE(tp.last_name,''),', ',COALESCE(tp.first_name,''),' ',COALESCE(tp.middle_name,''))"), 'LIKE', "%{$term}%");
             }
         }
+
+        if ($query === '') $q->limit(500);
 
         return $q->orderByRaw("CONCAT(COALESCE(tp.last_name,''),tp.first_name)")->get()->toArray();
     }
