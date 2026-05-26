@@ -505,13 +505,13 @@ class PublicController extends Controller
 
     public function teacherProfile($uuid,TeacherProfile $teacherProfile, Request $request){
 
-        $isDistrictOfficerOrAbove = false;
-
-        if( Auth::check() && Auth::user()->user_type_id >= 40){
-            $isDistrictOfficerOrAbove = true;
-        }
+        $isDistrictOfficerOrAbove = Auth::check() && Auth::user()->user_type_id >= 40;
 
         $teacherProfileDetails = $teacherProfile->teacherDetails($uuid);
+
+        if (!$isDistrictOfficerOrAbove && $this->isSchoolLeaderForTeacher($uuid)) {
+            $isDistrictOfficerOrAbove = true;
+        }
 
         $url="";
         if(isset($teacherProfileDetails->media_created_at)){
@@ -533,20 +533,14 @@ class PublicController extends Controller
     }
 
     public function getTeacherSchoolData($uuid,TeacherProfile $teacherProfile, Request $request){
-        $isDistrictOfficerOrAbove = false;
-
-        if( Auth::check() && Auth::user()->user_type_id >= 40){
-            $isDistrictOfficerOrAbove = true;
-        }
+        $isDistrictOfficerOrAbove = (Auth::check() && Auth::user()->user_type_id >= 40)
+            || $this->isSchoolLeaderForTeacher($uuid);
         Utils::successResponse("success",$teacherProfile->getTeacherSchoolData($uuid,$isDistrictOfficerOrAbove));
     }
 
     public function getTeacherAssignedLearners($uuid,TeacherProfile $teacherProfile, Request $request){
-        $isDistrictOfficerOrAbove = false;
-
-        if( Auth::check() && Auth::user()->user_type_id >= 40){
-            $isDistrictOfficerOrAbove = true;
-        }
+        $isDistrictOfficerOrAbove = (Auth::check() && Auth::user()->user_type_id >= 40)
+            || $this->isSchoolLeaderForTeacher($uuid);
         Utils::successResponse("success",$teacherProfile->getTeacherLearners($uuid,$isDistrictOfficerOrAbove));
     }
 
@@ -686,6 +680,20 @@ class PublicController extends Controller
         return DB::table('user_scope_custom_assignment')
             ->where('user_id', Auth::id())
             ->where('school_uuid', $schoolUuid)
+            ->exists();
+    }
+
+    private function isSchoolLeaderForTeacher(string $personUuid): bool
+    {
+        if (!Auth::check() || Auth::user()->user_type_id != 20) {
+            return false;
+        }
+        return DB::table('school_group as sg')
+            ->join('teacher as t', 't.uuid', '=', 'sg.teacher_uuid')
+            ->join('user_scope_custom_assignment as usca', 'usca.school_uuid', '=', 'sg.school_uuid')
+            ->where('t.person_uuid', $personUuid)
+            ->where('usca.user_id', Auth::id())
+            ->whereNull('sg.deleted_at')
             ->exists();
     }
 
