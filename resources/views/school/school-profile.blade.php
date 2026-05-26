@@ -481,10 +481,20 @@
                 order: [], // by default use the custom ordering set in the SQL query
             });
 
+            function getLearnerAttendanceInfo(amOid, pmOid) {
+                if (amOid === 'present' && pmOid === 'present') return { label: 'Present',         color: '#c7eed8' };
+                if (amOid === 'absent'  && pmOid === 'absent')  return { label: 'Absent',          color: '#f7c6c5' };
+                if (amOid === 'absent'  && pmOid === 'present') return { label: 'Late',            color: '#fffacc' };
+                if (amOid === 'present' && pmOid === 'absent')  return { label: 'Early Departure', color: '#FFDDB0' };
+                if (amOid || pmOid)                             return { label: '',                color: '#d6d8db' };
+                return { label: '', color: null };
+            }
+
             learnerAttendanceDatatable = $('#dt-learner-table').DataTable({
                 data : dtLearnerTableData,
                 fnRowCallback: function( row, data, dataIndex ) {
-                    setTableRowColor(row,data['attendance_status'])
+                    const info = getLearnerAttendanceInfo(data['attendance_am_status_oid'], data['attendance_pm_status_oid']);
+                    if (info.color) $('td', row).css('background-color', info.color);
                 },
                 columns: [
                     {
@@ -533,30 +543,11 @@
                         defaultContent: ''
                     },
                     {
-                        data: "attendance_status",
+                        data: "attendance_am_status_oid",
                         className: 'text-center',
                         searchable: true,
                         render: function ( data, type, full, meta ) {
-                            if (data) {
-                                let status = "";
-                                switch (data) {
-                                    case 'present':
-                                            status = "Present";
-                                        break;
-                                    case 'half_day':
-                                        status = "Half Day";
-                                    break;
-                                    case 'absent':
-                                        status = "Absent";
-                                    break;
-                                    default:
-                                            status = "";
-                                        break;
-                                }
-                                return status
-                            } else {
-                                return ''
-                            }
+                            return getLearnerAttendanceInfo(full['attendance_am_status_oid'], full['attendance_pm_status_oid']).label;
                         }
                     },
                     {

@@ -255,7 +255,8 @@ class School{
                 ols.item_name gender,
                 olsgl.item_name year_group,
                 sg.school_group_name classroom_name,
-                pa.attendance_status,
+                pa.attendance_am_status_oid,
+                pa.attendance_pm_status_oid,
                 COALESCE(ol_ar.item_name, pa.absent_reason_other) absent_reason,
                 {$confidentialColumns}
             FROM school_learner_admission sla
@@ -272,11 +273,8 @@ class School{
             LEFT JOIN(
                 SELECT
                     person_uuid,
-                    (CASE
-                        WHEN attendance_am_status_oid = attendance_pm_status_oid THEN attendance_am_status_oid
-                        WHEN attendance_am_status_oid != attendance_pm_status_oid THEN 'half_day'
-                        ELSE NULL
-                    END) AS attendance_status,
+                    attendance_am_status_oid,
+                    attendance_pm_status_oid,
                     absent_reason_oid,
                     absent_reason_other
                 FROM person_attendance
