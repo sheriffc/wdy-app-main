@@ -572,8 +572,8 @@
                             timetableEvents.push({
                                 start: now.startOf('week').add(moment().day(element.day_of_the_week_oid).weekday(), 'days').add(startTime[0], 'h').add(startTime[1], 'm').format('X'),
                                 end: now.startOf('week').add(moment().day(element.day_of_the_week_oid).weekday(), 'days').add(endTime[0], 'h').add(endTime[1], 'm').format('X'),
-                                title: `${element.start_time}-${element.end_time}`,
-                                content: `Subject: ${element.school_subject}`,
+                                title: `${element.school_subject}`,
+                                content: `${element.start_time} – ${element.end_time}`,
                                 // category:'Religious Moral Education'
                             })
                         });
