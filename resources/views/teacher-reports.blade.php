@@ -46,7 +46,7 @@
             <h5 class="col-md-6 card-title">Teachers Liable to Attendance Sanctions for <span id="teacher-sanction-selected-date"></span></h5>
                 
             <p>
-                These teachers have received at least six unauthorised absences during the indicated month.
+                These teachers have received 3 or more absences without a valid reason during the indicated month.
             </p>
             <div class="card">
                 <div class="card-body">
@@ -87,7 +87,7 @@
         <div class="col-md-12 mt-4">
             <h5 class="card-title">Removable Teachers</h5>
             <p>
-                These teachers were removed by head teachers citing either death, retirement, or leaving the teaching profession. Once the teacher has been removed from the payroll, they will be removed from this table.
+                These teachers have been removed from their assigned school. Once the teacher has been removed from the payroll, they will be removed from this table.
             </p>
             <div class="card">
                 <div class="card-body">

@@ -121,7 +121,8 @@ class LearnerProfile {
                 sla.start_date,
                 sla.end_date,
                 ol_er.item_name end_reason,
-                sle.deleted_at
+                sle.deleted_at,
+                (sle.deleted_at IS NULL AND sle.academic_year = (SELECT academic_year FROM school_academic_year WHERE active = 1 LIMIT 1)) AS is_active
             FROM school_learner_enrolment sle
             JOIN school_group sg ON sg.uuid = sle.school_group_uuid
             JOIN school s ON s.uuid = sg.school_uuid

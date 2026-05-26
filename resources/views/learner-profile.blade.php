@@ -506,7 +506,7 @@
                                 <td>{{ $row->end_date ?? '—' }}</td>
                                 <td>{{ $row->end_reason ?? '—' }}</td>
                                 <td>
-                                    @if(!$row->deleted_at)
+                                    @if($row->is_active)
                                         <span class="badge bg-success">Active</span>
                                     @else
                                         <span class="badge bg-secondary">Ended</span>

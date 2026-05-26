@@ -16,6 +16,12 @@ class LearnerAdminController extends Controller
     {
         $this->middleware('auth');
         $this->middleware('admin')->only(['downloadTemplate', 'bulkUpload']);
+        $this->middleware(function ($request, $next) {
+            if (auth()->check() && auth()->user()->user_type_id < 40) {
+                abort(403, 'You are not authorised to view this page.');
+            }
+            return $next($request);
+        })->only(['index', 'listJson']);
     }
 
     public function index()

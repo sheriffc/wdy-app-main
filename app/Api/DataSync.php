@@ -18,6 +18,13 @@ class DataSync
                     if(isset($record['sync_flag'])){
                         unset($record['sync_flag']);
                     }
+                    if ($table === 'school') {
+                        foreach (['wash_oids', 'electricity_oids', 'mno_oids', 'learning_materials_oids'] as $field) {
+                            if (isset($record[$field])) {
+                                $record[$field] = self::enforceNoneExclusive($record[$field]);
+                            }
+                        }
+                    }
                     $affected = DB::table($table)->upsert(
                         $record,
                         ['uuid']
@@ -31,6 +38,17 @@ class DataSync
 
         }
         return $payload;
+    }
+
+    /**
+     * When 'none' is present in a comma-separated OID string, drop every other value.
+     */
+    private static function enforceNoneExclusive(?string $oidsString): ?string
+    {
+        if (empty($oidsString)) return $oidsString;
+        $parts = array_filter(array_map('trim', explode(',', $oidsString)));
+        if (in_array('none', $parts, true)) return 'none';
+        return implode(',', $parts);
     }
 
     public static function processUploadDataVersion3($params, $user, $schoolIds, $schoolIdsString, $installId){
@@ -54,6 +72,14 @@ class DataSync
 
                     if(isset($installId)) {
                         $record['synced_by_install_id'] = $installId;
+                    }
+
+                    if ($table === 'school') {
+                        foreach (['wash_oids', 'electricity_oids', 'mno_oids', 'learning_materials_oids'] as $field) {
+                            if (isset($record[$field])) {
+                                $record[$field] = self::enforceNoneExclusive($record[$field]);
+                            }
+                        }
                     }
 
                     $affected = DB::table($table)->upsert(

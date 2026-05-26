@@ -147,7 +147,7 @@
 
     <div class="mt-4">
         <h3>Learner Vulnerabilities Analysis</h3>
-        <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <ul class="nav nav-tabs flex-wrap" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
             <button class="nav-link active" id="gender-analysis-tab" data-bs-toggle="tab" data-bs-target="#gender-analysis" type="button" role="tab" aria-controls="gender-analysis" aria-selected="true"><h4>Gender</h4></button>
             </li>
@@ -156,6 +156,9 @@
             </li>
             <li class="nav-item" role="presentation">
             <button class="nav-link" id="at-risk-analysis-tab" data-bs-toggle="tab" data-bs-target="#at-risk-analysis" type="button" role="tab" aria-controls="at-risk-analysis" aria-selected="false"><h4>At Risk</h4></button>
+            </li>
+            <li class="nav-item" role="presentation">
+            <button class="nav-link" id="performance-analysis-tab" data-bs-toggle="tab" data-bs-target="#performance-analysis" type="button" role="tab" aria-controls="performance-analysis" aria-selected="false"><h4>Learner Performance</h4></button>
             </li>
         </ul>
 
@@ -514,6 +517,82 @@
                     </div>
                 </div>
             </div>
+
+            {{-- ── Learner Performance Tab ─────────────────────────────────────── --}}
+            <div class="tab-pane fade" id="performance-analysis" role="tabpanel" aria-labelledby="performance-analysis-tab">
+
+                {{-- Filters --}}
+                <div class="d-flex gap-2 mt-2 mb-3 flex-wrap">
+                    <div>
+                        <label class="form-label small mb-1">Term</label>
+                        <select id="perf-term-filter" class="form-select form-select-sm" style="min-width:150px;">
+                            <option value="">All Terms</option>
+                            <option value="first_term">First Term</option>
+                            <option value="second_term">Second Term</option>
+                            <option value="third_term">Third Term</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label small mb-1">School Level</label>
+                        <select id="perf-level-filter" class="form-select form-select-sm" style="min-width:150px;">
+                            <option value="">All Levels</option>
+                            <option value="Primary">Primary</option>
+                            <option value="JSS">JSS</option>
+                            <option value="SSS">SSS</option>
+                        </select>
+                    </div>
+                </div>
+
+                {{-- Summary table --}}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">Poor Performance Summary <small class="text-muted">(avg score &lt; 50%)</small></h5>
+                                <table class="table table-sm table-bordered mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>School Level</th>
+                                            <th class="text-center">Total Assessed</th>
+                                            <th class="text-center">Poor Performance</th>
+                                            <th class="text-center">% Poor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="perf-summary-body">
+                                        <tr><td colspan="4" class="text-center text-muted">Loading…</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title text-center">Performance Trends by Term</h5>
+                                <div id="perf-trends-chart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Subject comparison --}}
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title text-center">Subject Performance Comparison</h5>
+                                <p class="text-muted small text-center mb-2">
+                                    <span style="color:#E74C3C;">&#9632;</span> Poor (&lt;50%)&ensp;
+                                    <span style="color:#F39C12;">&#9632;</span> Good (50–69%)&ensp;
+                                    <span style="color:#27AE60;">&#9632;</span> Very Good (≥70%)
+                                </p>
+                                <div id="perf-subject-chart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 @endsection
@@ -522,6 +601,8 @@
     @include('_partials.highchart-config')
     @include('_partials.district-geo-location')
     <script>
+        let slDistrictsGeoJson = {!! file_get_contents('json/sl_districts.geojson') !!};
+
         var selectedDistrict = null;
         var selectedDate = null;
         var startDate = null;
@@ -618,7 +699,8 @@
             await getAtRiskSchoolsChart();
             await getGenderSeverityAbsenteeismChart();
             await getDistrictAbsenteeismChart();
-            await getAgeAbsenteeismChart()
+            await getAgeAbsenteeismChart();
+            if ($('#performance-analysis-tab').hasClass('active')) getLearnerPerformanceData();
         })
 
         $("#attendance-dates").bind("change", async function () {
@@ -1302,8 +1384,8 @@
                         });
 
 
-                        martenalStatusMap.series[1].setData(maternalStatusMapPointData)
-                        martenalStatusMap.series[2].setData(noMaternalStatusMapPointData)
+                        martenalStatusMap.series[1].setData(noMaternalStatusMapPointData)
+                        martenalStatusMap.series[2].setData(maternalStatusMapPointData)
                     }
                 }
             })
@@ -1422,38 +1504,6 @@
                     dataLabels: false
                 },
                 {
-                    name: 'Has learners with maternal status',
-                    type: 'mappoint',
-                    title: false,
-                    data: maternalStatusMapPointData,
-                    {{--data: {!! json_encode($gpsSchools,JSON_NUMERIC_CHECK) !!},--}}
-                    color: '#6df1a4',
-                    // marker: {
-                    //     fillColor: '#FFFFFF',
-                    //     lineColor: '#6df1a4',
-                    //     lineWidth: 1,
-                    //     radius: 3
-                    // },
-                    dataLabels: {enabled: false},
-                    // dataLabels: false,
-                    animation: false,
-                    tooltip: {
-                        // pointFormat: '{point.name}'
-                    },
-                    turboThreshold: 0,
-                    showInLegend: true,
-                    point: {
-                        events: {
-                            click: function () {
-                                if (this.uuid) {
-                                    window.open('/school/' + this.uuid);
-                                }
-                            }
-                        },
-                    },
-
-                },
-                {
                     name: 'No learners with maternal status',
                     type: 'mappoint',
                     title: false,
@@ -1466,17 +1516,36 @@
                         radius: 3,
                         symbol : 'circle'
                     },
-                    // dataLabels: {enabled: true},
-                    // dataLabels: false,
                     animation: false,
                     tooltip: {
                         // pointFormat: '{point.name}'
                     },
                     turboThreshold: 0,
-                    // showInLegend: true,
-                    // legend: {
-                        // symbolRadius: 20
-                    // },
+                    point: {
+                        events: {
+                            click: function () {
+                                if (this.uuid) {
+                                    window.open('/school/' + this.uuid);
+                                }
+                            }
+                        },
+                    },
+
+                },
+                {
+                    name: 'Has learners with maternal status',
+                    type: 'mappoint',
+                    title: false,
+                    data: maternalStatusMapPointData,
+                    {{--data: {!! json_encode($gpsSchools,JSON_NUMERIC_CHECK) !!},--}}
+                    color: '#6df1a4',
+                    dataLabels: {enabled: false},
+                    animation: false,
+                    tooltip: {
+                        // pointFormat: '{point.name}'
+                    },
+                    turboThreshold: 0,
+                    showInLegend: true,
                     point: {
                         events: {
                             click: function () {
@@ -3191,6 +3260,161 @@
             return percentageAttendanceList
         }
   
+
+
+        // ── Learner Performance Tab ───────────────────────────────────────────────
+        var selectedPerfTerm  = "";
+        var selectedPerfLevel = "";
+        var perfTrendsChart, perfSubjectChart;
+        var perfDataCache = null;
+
+        const TERM_LABELS = {
+            first_term:  'First Term',
+            second_term: 'Second Term',
+            third_term:  'Third Term'
+        };
+        const LEVEL_COLORS = { Primary: '#5B9BD5', JSS: '#ED7D31', SSS: '#70AD47' };
+
+        function initPerfCharts() {
+            perfTrendsChart = new Highcharts.Chart('perf-trends-chart', {
+                chart: { type: 'column', height: 280, animation: false },
+                title: { text: null },
+                xAxis: { categories: ['First Term', 'Second Term', 'Third Term'] },
+                yAxis: {
+                    min: 0, max: 100,
+                    title: { text: 'Avg Score (%)' },
+                    plotLines: [{ value: 50, color: '#E74C3C', dashStyle: 'ShortDash', width: 1,
+                                  label: { text: '50% threshold', style: { color: '#E74C3C', fontSize: '10px' } } }]
+                },
+                tooltip: { valueSuffix: '%', shared: true },
+                legend: { enabled: true },
+                series: [],
+                credits: { enabled: false }
+            });
+
+            perfSubjectChart = new Highcharts.Chart('perf-subject-chart', {
+                chart: { type: 'bar', height: 380, animation: false },
+                title: { text: null },
+                xAxis: { categories: [], title: { text: null } },
+                yAxis: {
+                    min: 0, max: 100,
+                    title: { text: 'Avg Score (%)' },
+                    plotLines: [{ value: 50, color: '#E74C3C', dashStyle: 'ShortDash', width: 1 }]
+                },
+                tooltip: { valueSuffix: '%' },
+                legend: { enabled: false },
+                series: [{ name: 'Avg Score', data: [], colorByPoint: true, showInLegend: false }],
+                credits: { enabled: false }
+            });
+        }
+
+        function renderPerfSummary(summary) {
+            const levels = ['Primary', 'JSS', 'SSS'];
+            let html = '';
+            levels.forEach(function(lvl) {
+                const row = summary.find(function(r) { return r.level_label === lvl; });
+                if (!row) return;
+                const pct = row.total_assessed > 0 ? Math.round(row.poor_performers / row.total_assessed * 100) : 0;
+                const badge = pct >= 50 ? 'danger' : pct >= 30 ? 'warning' : 'success';
+                html += '<tr>' +
+                    '<td><strong>' + lvl + '</strong></td>' +
+                    '<td class="text-center">' + row.total_assessed + '</td>' +
+                    '<td class="text-center">' + row.poor_performers + '</td>' +
+                    '<td class="text-center"><span class="badge bg-' + badge + '">' + pct + '%</span></td>' +
+                    '</tr>';
+            });
+            document.getElementById('perf-summary-body').innerHTML =
+                html || '<tr><td colspan="4" class="text-center text-muted">No data available</td></tr>';
+        }
+
+        function renderPerfTrends(trends) {
+            const terms   = ['first_term', 'second_term', 'third_term'];
+            const levels  = selectedPerfLevel ? [selectedPerfLevel] : ['Primary', 'JSS', 'SSS'];
+            const present = levels.filter(function(l) { return trends.some(function(t) { return t.level_label === l; }); });
+
+            while (perfTrendsChart.series.length) perfTrendsChart.series[0].remove(false);
+
+            present.forEach(function(level) {
+                perfTrendsChart.addSeries({
+                    name:  level,
+                    color: LEVEL_COLORS[level],
+                    data:  terms.map(function(term) {
+                        const row = trends.find(function(t) { return t.level_label === level && t.term_oid === term; });
+                        return row ? parseFloat(row.avg_score) : null;
+                    })
+                }, false);
+            });
+            perfTrendsChart.redraw();
+        }
+
+        function renderPerfSubjects(subjects) {
+            let filtered = subjects.slice();
+            if (selectedPerfLevel) filtered = filtered.filter(function(s) { return s.level_label === selectedPerfLevel; });
+            if (selectedPerfTerm)  filtered = filtered.filter(function(s) { return s.term_oid === selectedPerfTerm; });
+
+            const subjectMap = {};
+            filtered.forEach(function(row) {
+                const key = row.subject_oid;
+                if (!subjectMap[key]) subjectMap[key] = { name: row.subject_name, total: 0, count: 0 };
+                subjectMap[key].total += parseFloat(row.avg_score);
+                subjectMap[key].count += 1;
+            });
+
+            const data = Object.values(subjectMap)
+                .map(function(s) { return { name: s.name, y: Math.round(s.total / s.count * 10) / 10 }; })
+                .sort(function(a, b) { return a.y - b.y; });
+
+            const height = Math.max(280, data.length * 28 + 80);
+            perfSubjectChart.setSize(null, height, false);
+            perfSubjectChart.xAxis[0].setCategories(data.map(function(d) { return d.name; }), false);
+            perfSubjectChart.series[0].setData(data.map(function(d) {
+                return { y: d.y, color: d.y < 50 ? '#E74C3C' : d.y < 70 ? '#F39C12' : '#27AE60' };
+            }), true);
+        }
+
+        function getLearnerPerformanceData() {
+            document.getElementById('perf-summary-body').innerHTML =
+                '<tr><td colspan="4" class="text-center text-muted">Loading…</td></tr>';
+
+            $.ajax({
+                type: "POST",
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                url: "/api/learner-performance/dashboard",
+                data: {
+                    districtId: selectedDistrict,
+                    termOid:    selectedPerfTerm,
+                    levelLabel: selectedPerfLevel
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status !== true) return;
+                    perfDataCache = response.data;
+                    renderPerfSummary(response.data.summary);
+                    renderPerfTrends(response.data.trends);
+                    renderPerfSubjects(response.data.subjects);
+                }
+            });
+        }
+
+        $('#perf-term-filter').on('change', function() {
+            selectedPerfTerm = this.value;
+            if (perfDataCache) {
+                renderPerfTrends(perfDataCache.trends);
+                renderPerfSubjects(perfDataCache.subjects);
+            } else {
+                getLearnerPerformanceData();
+            }
+        });
+
+        $('#perf-level-filter').on('change', function() {
+            selectedPerfLevel = this.value;
+            getLearnerPerformanceData();
+        });
+
+        $('#performance-analysis-tab').on('shown.bs.tab', function() {
+            if (!perfTrendsChart) initPerfCharts();
+            getLearnerPerformanceData();
+        });
 
     </script>
 

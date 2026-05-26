@@ -160,7 +160,7 @@
                                 <tr class="align-middle">
                                     <th class="text-start">Name</th>
                                     <th class="text-start">Gender</th>
-                                    @if(Auth::check() && Auth::user()->user_type_id >= 40)
+                                    @if(Auth::check() && (Auth::user()->user_type_id >= 40 || $isSchoolLeaderOfThisSchool))
                                         <th class="text-start">Payroll PIN</th>
                                     @else
                                         <th class="text-start">Payroll Status</th>
@@ -215,7 +215,7 @@
                         </div>
                     </div>
                 </div>
-                @if(Auth::check() && Auth::user()->user_type_id >= 40)
+                @if(Auth::check() && (Auth::user()->user_type_id >= 40 || $isSchoolLeaderOfThisSchool))
                     <div class="col-md-6">
                         <div class="card mt-4">
                             <div class="card-body">
@@ -247,9 +247,12 @@
             var selectedDate = null;
             var startDate = null;
             var endDate = null;
-            var isDistrictOfficerOrAbove ="{{ $isDistrictOfficerOrAbove }}";
+            var isDistrictOfficerOrAbove = "{{ $isDistrictOfficerOrAbove }}";
+            var isSchoolLeaderOfThisSchool = "{{ $isSchoolLeaderOfThisSchool }}";
+            var canSeePrivateData = isDistrictOfficerOrAbove || isSchoolLeaderOfThisSchool;
             var dtTeacherTableData = [];
             var dtLearnerTableData = [];
+            var learnerAttendanceDatatable = null;
             var dtClassroomTableData = [];
             var dtTeachersRemovedFromPayrollTableData = [];
 
@@ -411,14 +414,14 @@
                         data: "teacher_name",
                         className: 'text-start',
                         render: function ( data, type, row, meta ) {
-                            if(isDistrictOfficerOrAbove){
-                                if(data != null){
+                            if (canSeePrivateData) {
+                                if (data != null) {
                                     return `<a href="/teacher-profile/${row.uuid}">${row.teacher_name}</a>`;
-                                }else{
-                                    return ''
+                                } else {
+                                    return '';
                                 }
-                            }else{
-                                return `<a href="/teacher-profile/${row.uuid}">'********'</a>`;
+                            } else {
+                                return `<a href="/teacher-profile/${row.uuid}">********</a>`;
                             }
                         },
                     },
@@ -478,7 +481,7 @@
                 order: [], // by default use the custom ordering set in the SQL query
             });
 
-            let learnerAttendanceDatatable = $('#dt-learner-table').DataTable({
+            learnerAttendanceDatatable = $('#dt-learner-table').DataTable({
                 data : dtLearnerTableData,
                 fnRowCallback: function( row, data, dataIndex ) {
                     setTableRowColor(row,data['attendance_status'])
@@ -486,10 +489,10 @@
                 columns: [
                     {
                         data: "learner_name",
-                        className: (isDistrictOfficerOrAbove) ? 'text-left' : 'text-center',
-                        searchable: (isDistrictOfficerOrAbove) ? true : false,
+                        className: canSeePrivateData ? 'text-left' : 'text-center',
+                        searchable: canSeePrivateData ? true : false,
                         render: function ( data, type, full, meta ) {
-                            if (isDistrictOfficerOrAbove) {
+                            if (canSeePrivateData) {
                                 if (data && full.learner_uuid) {
                                     return '<a href="/learner-profile/' + full.learner_uuid + '">' + data + '</a>'
                                 } else {
@@ -507,9 +510,9 @@
                     {
                         data: "date_of_birth",
                         className: 'text-center',
-                        searchable: (isDistrictOfficerOrAbove) ? true : false,
+                        searchable: canSeePrivateData ? true : false,
                         render: function ( data, type, full, meta ) {
-                            if (isDistrictOfficerOrAbove) {
+                            if (canSeePrivateData) {
                                 if (data) {
                                     return data
                                 } else {
@@ -600,14 +603,14 @@
                         data: "teacher_name",
                         className: 'text-start',
                         render: function ( data, type, row, meta ) {
-                            if(isDistrictOfficerOrAbove){
-                                if(data != null){
+                            if (canSeePrivateData) {
+                                if (data != null) {
                                     return `<a href="/teacher-profile/${row.uuid}">${row.teacher_name}</a>`;
-                                }else{
-                                    return ''
+                                } else {
+                                    return '';
                                 }
-                            }else{
-                                return `<a href="/teacher-profile/${row.uuid}">'********'</a>`;
+                            } else {
+                                return `<a href="/teacher-profile/${row.uuid}">********</a>`;
                             }
                         },
                     },

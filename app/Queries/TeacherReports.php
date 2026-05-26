@@ -36,9 +36,9 @@ class TeacherReports{
 
 
         $sql = "
-            SELECT 
-            * 
-            FROM(SELECT	
+            SELECT
+            *
+            FROM(SELECT
                 a.uuid,
                 {$confidentialColumns}
                 a.school_uuid,
@@ -46,35 +46,41 @@ class TeacherReports{
                 a.district_id,
                 a.chiefdom_id,
                 date,
-                COUNT(*) `number_unauthorised_absences` 
-            FROM (SELECT 
+                COUNT(*) `number_unauthorised_absences`
+            FROM (SELECT
                     p.uuid,
-                    DATE_FORMAT(pa.date, '%Y-%m') date, 
-                    t.pin, 
-                    p.first_name, 
-                    p.middle_name, 
+                    DATE_FORMAT(pa.date, '%Y-%m') date,
+                    t.pin,
+                    p.first_name,
+                    p.middle_name,
                     p.last_name,
                     s.uuid school_uuid,
-                    s.name school_name, 
+                    s.name school_name,
                     s.district_id,
                     s.chiefdom_id,
-                    ht.phone_1, 
+                    ht.phone_1,
                     ht.school_leader_name
                 FROM person_attendance pa
-                LEFT JOIN person p on pa.person_uuid = p.uuid
-                LEFT JOIN teacher t on pa.person_uuid = t.person_uuid
-                LEFT JOIN school s on t.school_uuid = s.uuid
-                LEFT JOIN (SELECT 
-                                CONCAT_WS(', ', p.last_name, CONCAT_WS(' ', p.first_name, p.middle_name)) school_leader_name, 
-                                t.school_uuid, p.phone_1 FROM teacher t 
+                INNER JOIN option_list ol_ar
+                    ON ol_ar.list_name = 'absent_reason_teacher'
+                    AND ol_ar.item_id = pa.absent_reason_oid
+                    AND ol_ar.item_extra = 'no_valid'
+                LEFT JOIN person p ON pa.person_uuid = p.uuid
+                LEFT JOIN teacher t ON pa.person_uuid = t.person_uuid
+                LEFT JOIN school s ON t.school_uuid = s.uuid
+                LEFT JOIN (SELECT
+                                CONCAT_WS(', ', p.last_name, CONCAT_WS(' ', p.first_name, p.middle_name)) school_leader_name,
+                                t.school_uuid, p.phone_1 FROM teacher t
                                 LEFT JOIN person p ON t.person_uuid = p.uuid
-                                WHERE t.teacher_role_oid = 'head_teacher' )ht ON s.uuid = ht.school_uuid
+                                WHERE t.teacher_role_oid = 'head_teacher') ht ON s.uuid = ht.school_uuid
                 WHERE t.pin IS NOT NULL
-                    AND (pa.absent_reason_oid = 'no_valid_reason_absent' OR pa.absent_reason_oid = 'no_valid_reason_early_departure')
-                    ) a 
-            
+                    AND pa.submitted = 1
+                    AND pa.deleted_at IS NULL
+                    AND pa.entity_type_oid = 'teacher'
+                    ) a
+
             GROUP BY a.pin, a.first_name, a.middle_name, a.last_name, a.school_name) b
-            WHERE b.`number_unauthorised_absences` >= 6
+            WHERE b.`number_unauthorised_absences` >= 3
                 {$whereClause}
             ORDER BY `number_unauthorised_absences` DESC
         ";
@@ -128,10 +134,10 @@ class TeacherReports{
                         WHEN GROUP_CONCAT(sa.added_to_sch SEPARATOR ', ') IS NOT NULL AND GROUP_CONCAT(sa.sid_added_to_sch SEPARATOR ', ') IS NULL THEN 'Not available'
                         WHEN GROUP_CONCAT(sa.added_to_sch SEPARATOR ', ') IS NULL AND GROUP_CONCAT(sa.sid_added_to_sch SEPARATOR ', ') IS NULL THEN NULL
                         ELSE GROUP_CONCAT(sa.sid_added_to_sch SEPARATOR ', ') END `current_sid`, 
-                    max(sa.removed_from_sch_uuid) payroll_school_uuid,
+                    max(sa.payroll_school_uuid_real) payroll_school_uuid,
                     CASE
-                        WHEN GROUP_CONCAT(DISTINCT sa.removed_from_sch SEPARATOR ', ') IS NULL THEN 'Non-Participating School'
-                        ELSE GROUP_CONCAT(DISTINCT sa.removed_from_sch SEPARATOR ', ') END `payroll_school_assignment` ,
+                        WHEN max(sa.payroll_school_name) IS NULL THEN 'Non-Participating School'
+                        ELSE max(sa.payroll_school_name) END `payroll_school_assignment`,
                     max(sa.payroll_sid) as `payroll_sid`
                    
             FROM
@@ -161,6 +167,8 @@ class TeacherReports{
                         IF(t.end_reason_teacher_oid IS NULL, s.payroll_sid, NULL) sid_added_to_sch,
                         IF(t.end_reason_teacher_oid IS NULL, 1, 0) active_schools,
                         tp.school_sid as payroll_sid,
+                        ps.name payroll_school_name,
+                        ps.uuid payroll_school_uuid_real,
                         p.phone_1,
                         CASE 
                         WHEN t.created_by = -1 AND COUNT(*) OVER (PARTITION BY t.pin) > 1 THEN 1
@@ -169,8 +177,10 @@ class TeacherReports{
                 FROM teacher t
                 LEFT JOIN person p ON t.person_uuid = p.uuid
                 LEFT JOIN school s ON t.school_uuid = s.uuid
-                LEFT JOIN option_list er ON t.end_reason_teacher_oid = er.item_id AND list_name = 'end_reason_teacher' 
+                LEFT JOIN option_list er ON t.end_reason_teacher_oid = er.item_id AND list_name = 'end_reason_teacher'
                 LEFT JOIN teacher_payroll tp ON t.pin = tp.pin
+                    AND tp.yearmonth = (SELECT MAX(yearmonth) FROM teacher_payroll WHERE pin = t.pin)
+                LEFT JOIN school ps ON ps.payroll_sid = tp.school_sid
                 LEFT JOIN district_office d ON s.district_id = d.district_id
                 
                 ) sub
@@ -219,15 +229,15 @@ class TeacherReports{
 
 
         $sql="
-            SELECT 
+            SELECT
                 t.person_uuid uuid,
-                {$confidentialColumns}                                                                                 
-                s.uuid school_uuid,																
-                s.name `school_removed_from`,	
-                er.item_name `end_reason`, 	                                                    
+                {$confidentialColumns}
+                s.uuid school_uuid,
+                s.name `school_removed_from`,
+                er.item_name `end_reason`,
                 t.end_reason_teacher_detail `comments`,
                 DATE_FORMAT(t.end_date, '%a %D  %b %Y') `date_left_school`
-                    
+
             FROM teacher t
             LEFT JOIN person p ON t.person_uuid = p.uuid
             LEFT JOIN school s ON t.school_uuid = s.uuid
@@ -236,17 +246,15 @@ class TeacherReports{
             LEFT JOIN district_office d ON s.district_id = d.district_id
             LEFT JOIN (
                 Select t.school_uuid, t.person_uuid, p.phone_1, p.phone_2, p.first_name, p.middle_name, p.last_name, t.end_date
-                FROM teacher t 
+                FROM teacher t
                 LEFT JOIN person p ON t.person_uuid = p.uuid
-                WHERE t.teacher_role_oid = 'head_teacher' 
+                WHERE t.teacher_role_oid = 'head_teacher'
                     ) ht ON s.uuid = ht.school_uuid
-            
-            WHERE t.pin IS NOT NULL AND s.active = 1 
-                AND pr.pin IS NOT NULL # filter to the teachers that are still on the payroll
-                {$whereClause}   
-                AND (end_reason_teacher_oid = 'death'
-                OR end_reason_teacher_oid = 'retirement'
-                OR end_reason_teacher_oid = 'changed_profession' )
+
+            WHERE t.pin IS NOT NULL AND s.active = 1
+                AND pr.pin IS NOT NULL
+                AND t.deleted_at IS NOT NULL
+                {$whereClause}
         ";
         return DB::select($sql);
     }
@@ -349,9 +357,9 @@ class TeacherReports{
             ols.item_name gender,
             tr.item_name,
             s.uuid school_uuid,
-            s.name school_name, 
-            sl.iddistrict as district, 
-            sl.idchiefdom AS chiefdom, 
+            s.name school_name,
+            gd.name as district,
+            gc.name AS chiefdom,
             p.phone_1,
             row_number() OVER (PARTITION BY pin ORDER BY t.deleted_at, t.created_at DESC) as row_num,
             sum(IF(t.deleted_by IS NULL, 1, 0)) OVER(PARTITION BY pin) active_assignments
@@ -359,8 +367,9 @@ class TeacherReports{
         FROM teacher t
         LEFT JOIN person p ON t.person_uuid = p.uuid
         LEFT JOIN school s ON t.school_uuid = s.uuid
-        LEFT JOIN cga_300sch_list_230319 sl ON s.emis_id = sl.idemis_code
-        LEFT JOIN option_list tr ON tr.list_name = 'teacher_role' and t.teacher_role_oid = tr.item_id 
+        LEFT JOIN geo gd ON gd.id = s.district_id AND gd.type = 2
+        LEFT JOIN geo gc ON gc.id = s.chiefdom_id AND gc.type = 3
+        LEFT JOIN option_list tr ON tr.list_name = 'teacher_role' and t.teacher_role_oid = tr.item_id
         LEFT JOIN option_list ole ON ole.item_id = t.employment_status_oid AND ole.list_name = 'employment_status'
         LEFT JOIN option_list ols ON ols.item_id = p.sex_oid AND ols.list_name = 'sex'
         WHERE t.deleted_by IS NULL

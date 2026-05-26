@@ -122,25 +122,29 @@
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No academic years found.</td></tr>';
                 return;
             }
+            const today = new Date(); today.setHours(0,0,0,0);
             data.forEach(row => {
                 const isActive = parseInt(row.active) === 1;
+                const isPast   = row.date_to && new Date(row.date_to) < today;
+                let statusBadge;
+                if (isActive)      statusBadge = '<span class="badge bg-success">Active</span>';
+                else if (isPast)   statusBadge = '<span class="badge bg-danger">Past</span>';
+                else               statusBadge = '<span class="badge bg-secondary">Inactive</span>';
+
                 tbody.innerHTML += `
                     <tr>
                         <td>${row.academic_year_name ?? '—'}</td>
                         <td class="text-center">${row.academic_year ?? '—'}</td>
                         <td class="text-center">${row.date_from ?? '—'}</td>
                         <td class="text-center">${row.date_to ?? '—'}</td>
+                        <td class="text-center">${statusBadge}</td>
                         <td class="text-center">
-                            ${isActive
-                                ? '<span class="badge bg-success">Active</span>'
-                                : '<span class="badge bg-secondary">Inactive</span>'}
-                        </td>
-                        <td class="text-center">
+                            ${!isPast ? `
                             <button class="btn btn-outline-secondary btn-sm me-1"
                                 onclick="openEditModal('${row.uuid}','${row.academic_year}','${row.date_from}','${row.date_to}','${row.academic_year_name}')">
                                 Edit
-                            </button>
-                            ${!isActive ? `
+                            </button>` : ''}
+                            ${!isActive && !isPast ? `
                             <button class="btn btn-outline-success btn-sm"
                                 onclick="openActivateModal('${row.uuid}','${row.academic_year_name}')">
                                 Activate

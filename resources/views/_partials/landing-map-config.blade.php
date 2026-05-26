@@ -12,7 +12,6 @@
 
     {{--var pointData = {!! json_encode($gpsSchools,JSON_NUMERIC_CHECK) !!};--}}
     let pointData = [];
-    let slDistrictsGeoJson = {!! file_get_contents('json/sl_districts.geojson') !!};
 
     // pointData.forEach(function(el, i) {
     //     el['marker'] = {

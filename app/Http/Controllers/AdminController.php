@@ -109,6 +109,16 @@ class AdminController extends Controller
         $uuid     = $request->uuid ?: (string) Str::orderedUuid();
         $isNew    = empty($request->uuid);
 
+        if (!$isNew) {
+            $existing = DB::table('school_academic_year')
+                ->where('uuid', $uuid)
+                ->whereNull('deleted_at')
+                ->first(['date_to']);
+            if ($existing && $existing->date_to < now()->toDateString()) {
+                return response()->json(['status' => false, 'message' => 'Past academic years cannot be edited.']);
+            }
+        }
+
         if ($isNew) {
             $exists = DB::table('school_academic_year')
                 ->where('academic_year', $year)
@@ -117,6 +127,21 @@ class AdminController extends Controller
             if ($exists) {
                 return response()->json(['status' => false, 'message' => "Academic year $yearName already exists."]);
             }
+        }
+
+        // Overlap check: reject if any other academic year's date range intersects [date_from, date_to]
+        $overlap = DB::table('school_academic_year')
+            ->whereNull('deleted_at')
+            ->where('uuid', '<>', $uuid)
+            ->where('date_from', '<', $request->date_to)
+            ->where('date_to',   '>',  $request->date_from)
+            ->first(['academic_year_name', 'date_from', 'date_to']);
+
+        if ($overlap) {
+            return response()->json([
+                'status'  => false,
+                'message' => "Date range overlaps with {$overlap->academic_year_name} ({$overlap->date_from} – {$overlap->date_to}). Please adjust the dates so they do not overlap.",
+            ]);
         }
 
         $record = [
@@ -140,6 +165,10 @@ class AdminController extends Controller
         }
 
         if ($request->set_active) {
+            if ($request->date_to < now()->toDateString()) {
+                return response()->json(['status' => false, 'message' => 'A past academic year cannot be set as active.']);
+            }
+
             DB::table('school_academic_year')
                 ->whereNull('deleted_at')
                 ->where('uuid', '<>', $uuid)
@@ -159,13 +188,17 @@ class AdminController extends Controller
 
         $now = Utils::dateTimeStamp();
 
-        $exists = DB::table('school_academic_year')
+        $year = DB::table('school_academic_year')
             ->where('uuid', $request->uuid)
             ->whereNull('deleted_at')
-            ->exists();
+            ->first(['uuid', 'date_to']);
 
-        if (!$exists) {
+        if (!$year) {
             return response()->json(['status' => false, 'message' => 'Academic year not found.']);
+        }
+
+        if ($year->date_to && $year->date_to < now()->toDateString()) {
+            return response()->json(['status' => false, 'message' => 'A past academic year cannot be set as active.']);
         }
 
         DB::table('school_academic_year')

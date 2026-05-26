@@ -68,6 +68,8 @@ Route::post('/api/district-absenteeism-rate',[App\Http\Controllers\PublicControl
 
 Route::post('/api/age-absenteeism-rate',[App\Http\Controllers\PublicController::class, 'getAgeAbsenteeismChart'])->name('age-absenteeism-rate-data-api');
 
+Route::post('/api/learner-performance/dashboard',[App\Http\Controllers\PublicController::class, 'getLearnerPerformanceDashboard'])->name('learner-performance-dashboard-api');
+
 Route::post('/api/absenteeism-distribution-chart',[App\Http\Controllers\PublicController::class, 'getAbsenteeismDistributionChart'])->name('absenteeism-distribution-chart-data-api');
 
 Route::post('/api/trends-over-time-chart',[App\Http\Controllers\PublicController::class, 'getTrendsOverTimeChart'])->name('trends-over-time-chart-data-api');

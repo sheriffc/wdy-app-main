@@ -78,7 +78,9 @@
                             <hr class="dropdown-divider">
                             @endif
 
+                            @if(Auth::user()->user_type_id >= 40)
                             <a class="dropdown-item" href="{{ route('manage.learners') }}">{{ __('Learners') }}</a>
+                            @endif
                             @if(Auth::user()->user_type_id >= 80)
                             <h6 class="dropdown-header">Admin</h6>
                             <a class="dropdown-item" href="{{ route('manage.schools') }}">{{ __('Schools') }}</a>

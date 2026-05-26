@@ -133,7 +133,7 @@ class School{
 
     public static function learningMaterialsLabel(?string $oids): string
     {
-        return self::decodeOids($oids, ['textbooks' => 'Textbooks', 'teaching_aid' => 'Teaching Aid', 'science_equipment' => 'Science Equipment']);
+        return self::decodeOids($oids, ['none' => 'None', 'textbooks' => 'Textbooks', 'teaching_aid' => 'Teaching Aid', 'science_equipment' => 'Science Equipment']);
     }
 
     public function getTeacherTable($schoolUuid, $date, $isDistrictOfficerOrAbove){

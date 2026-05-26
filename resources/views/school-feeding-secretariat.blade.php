@@ -17,6 +17,8 @@
 
 @section('custom_js')
     @include('assets.datatables-js')
+    @include('assets.highcharts-js')
+    @include('assets.highmaps-js')
 @endsection
 
 @section('content')
@@ -117,68 +119,35 @@
 @endsection
 
 @section('script')
-<script type="text/javascript" src="https://maps.google.com/maps/api/js?key=AIzaSyBOWcZ_90o5xYRVyfU7cnLIoH-fF72re4E"></script>
+    @include('_partials.district-geo-location')
 <script>
+    let slDistrictsGeoJson = {!! file_get_contents('json/sl_districts_simple.geojson') !!};
+
+    var feedingMap;
     var secretariatTable;
     var feedingTable;
-    var gmap;
-    var markers = [];
-    var infoWindow;
     var selectedDistrict = "";
 
-    // ── Map init ──────────────────────────────────────────────────────────────
-    function initMap() {
-        gmap = new google.maps.Map(document.getElementById("feeding-map"), {
-            zoom: 8,
-            center: { lat: 8.4606, lng: -11.7799 },
-            mapTypeId: "roadmap"
-        });
-        infoWindow = new google.maps.InfoWindow();
-    }
-
-    function clearMarkers() {
-        markers.forEach(function (m) { m.setMap(null); });
-        markers = [];
-    }
-
-    function addMarkers(rows) {
-        clearMarkers();
-        var validCount = 0;
+    function updateMap(rows) {
+        if (!feedingMap) return;
+        var pointData = [];
         rows.forEach(function (row) {
             if (!row.lat || !row.lng) return;
-            validCount++;
-            var marker = new google.maps.Marker({
-                position: { lat: parseFloat(row.lat), lng: parseFloat(row.lng) },
-                map: gmap,
-                title: row.school_name,
-                icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 9,
-                    fillColor: "#28a745",
-                    fillOpacity: 0.9,
-                    strokeColor: "#fff",
-                    strokeWeight: 2
-                }
+            pointData.push({
+                id: row.school_uuid,
+                name: row.school_name,
+                lat: parseFloat(row.lat),
+                lon: parseFloat(row.lng),
+                district: row.district,
+                town: row.town,
+                supplied_by: row.supplied_by,
+                last_supply_date: row.last_supply_date ? row.last_supply_date.substring(0, 10) : null,
+                stock_month: row.stock_month
             });
-
-            marker.addListener("click", function () {
-                var content =
-                    '<div style="max-width:220px;">' +
-                    '<strong>' + row.school_name + '</strong><br>' +
-                    (row.district ? '<span class="text-muted">' + row.district + '</span><br>' : '') +
-                    (row.town     ? row.town + '<br>' : '') +
-                    (row.supplied_by    ? '<small>Supplied by: ' + row.supplied_by + '</small><br>' : '') +
-                    (row.last_supply_date ? '<small>Last supply: ' + row.last_supply_date + '</small><br>' : '') +
-                    (row.stock_month    ? '<small>Stock month: ' + row.stock_month + '</small>' : '') +
-                    '</div>';
-                infoWindow.setContent(content);
-                infoWindow.open(gmap, marker);
-            });
-
-            markers.push(marker);
         });
+        feedingMap.series[1].setData(pointData);
         document.getElementById("stat-count").textContent =
-            validCount + " school" + (validCount !== 1 ? "s" : "") + " on map";
+            pointData.length + " school" + (pointData.length !== 1 ? "s" : "") + " on map";
     }
 
     // ── Secretariat overview table ────────────────────────────────────────────
@@ -198,7 +167,7 @@
                 if (response.status !== true) return;
                 var rows = response.data.rows;
 
-                addMarkers(rows);
+                updateMap(rows);
 
                 secretariatTable = $('#dt-secretariat').DataTable({
                     data: rows,
@@ -323,7 +292,60 @@
 
     // ── Boot ─────────────────────────────────────────────────────────────────
     $(document).ready(function () {
-        initMap();
+        loadSecretariatTable();
+        loadFeedingTable();
+
+        try { feedingMap = new Highcharts.mapChart('feeding-map', {
+            chart: { animation: false },
+            title: { text: null },
+            mapNavigation: {
+                enabled: true,
+                enableDoubleClickZoomTo: true,
+                enableMouseWheelZoom: true,
+                enableTouchZoom: true
+            },
+            mapView: { maxZoom: 14 },
+            legend: { enabled: false },
+            tooltip: {
+                pointFormatter: function () {
+                    return '<strong>' + this.name + '</strong><br>' +
+                        (this.district ? this.district + '<br>' : '') +
+                        (this.town ? this.town + '<br>' : '') +
+                        '————<br>' +
+                        (this.supplied_by     ? 'Supplied by: ' + this.supplied_by + '<br>' : '') +
+                        (this.last_supply_date ? 'Last supply: ' + this.last_supply_date + '<br>' : '') +
+                        (this.stock_month     ? 'Stock month: ' + this.stock_month : '');
+                }
+            },
+            series: [
+                {
+                    mapData: slDistrictsGeoJson,
+                    name: 'Districts',
+                    type: 'map',
+                    showInLegend: false,
+                    dataLabels: false
+                },
+                {
+                    name: 'School',
+                    type: 'mappoint',
+                    data: [],
+                    color: '#28a745',
+                    marker: { fillColor: '#28a745', lineColor: '#fff', lineWidth: 2, radius: 5 },
+                    dataLabels: { enabled: false },
+                    animation: false,
+                    turboThreshold: 0,
+                    showInLegend: false,
+                    point: {
+                        events: {
+                            click: function () {
+                                if (this.id) { window.open('/school/' + this.id); }
+                            }
+                        }
+                    }
+                }
+            ],
+            credits: { enabled: false }
+        }); } catch(e) { console.error('Map init error:', e); }
 
         $.ajax({
             type: "POST",
@@ -343,12 +365,28 @@
 
         $("#district-filter").on("change", function () {
             selectedDistrict = this.value;
+
+            if (feedingMap && slDistrictsGeoJson) {
+                if (!selectedDistrict) {
+                    feedingMap.series[0].update({ mapData: slDistrictsGeoJson }, true);
+                    feedingMap.mapView.setView([-11.5935, 8.6190], 0, true, false);
+                } else {
+                    var districtId = parseInt(selectedDistrict);
+                    var viewConfig = districtGeoLocation[districtId];
+                    var filteredGeoJson = {
+                        type: 'FeatureCollection',
+                        features: slDistrictsGeoJson.features.filter(function (f) {
+                            return f.properties.CS_Dis_Num == viewConfig.geoJsonId;
+                        })
+                    };
+                    feedingMap.series[0].update({ mapData: filteredGeoJson }, true);
+                    feedingMap.mapView.setView([viewConfig.lon, viewConfig.lat], viewConfig.zoom, true, false);
+                }
+            }
+
             loadSecretariatTable();
             loadFeedingTable();
         });
-
-        loadSecretariatTable();
-        loadFeedingTable();
     });
 </script>
 @endsection

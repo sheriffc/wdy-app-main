@@ -14,6 +14,7 @@ use App\Queries\LearnerReports;
 use App\Queries\SchoolFeeding;
 use App\Queries\TeacherProfile;
 use App\Queries\LearnerProfile;
+use App\Queries\LearnerPerformanceQueries;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -216,16 +217,15 @@ class PublicController extends Controller
 
     public function schoolProfile($uuid, School $schoolQueries, SchoolFeeding $schoolFeedingQueries){
 
-        $isDistrictOfficerOrAbove = false;
-        if( Auth::check() && Auth::user()->user_type_id >= 40){
-            $isDistrictOfficerOrAbove = true;
-        }
+        $isDistrictOfficerOrAbove = Auth::check() && Auth::user()->user_type_id >= 40;
+        $isSchoolLeaderOfThisSchool = $this->isSchoolLeaderOf($uuid);
 
         return view('school.school-profile',[
-            "schoolInfo"       => $schoolQueries->getSchoolDetails($uuid),
-            "feedingRecords"   => $schoolFeedingQueries->getBySchool($uuid),
-            "stockRecords"     => $schoolFeedingQueries->getStockBySchool($uuid),
-            'isDistrictOfficerOrAbove' => $isDistrictOfficerOrAbove,
+            "schoolInfo"                 => $schoolQueries->getSchoolDetails($uuid),
+            "feedingRecords"             => $schoolFeedingQueries->getBySchool($uuid),
+            "stockRecords"               => $schoolFeedingQueries->getStockBySchool($uuid),
+            'isDistrictOfficerOrAbove'   => $isDistrictOfficerOrAbove,
+            'isSchoolLeaderOfThisSchool' => $isSchoolLeaderOfThisSchool,
         ]);
     }
 
@@ -253,20 +253,22 @@ class PublicController extends Controller
         $startDate = ($request->has(['startDate']) && !empty($request->startDate)) ?
             $request->startDate : Carbon::parse($maxTeacherAttendanceDate)->subDays(6)->toDateString();
 
-        $isDistrictOfficerOrAbove = false;
+        $isDistrictOfficerOrAbove = Auth::check() && Auth::user()->user_type_id >= 40;
+        $isSchoolLeaderOfThisSchool = $this->isSchoolLeaderOf($uuid);
+        $canSeePrivateData = $isDistrictOfficerOrAbove || $isSchoolLeaderOfThisSchool;
+
         $teachersRemovedFromPayroll = [];
-        if( Auth::check() && Auth::user()->user_type_id >= 40){
-            $isDistrictOfficerOrAbove = true;
+        if ($canSeePrivateData) {
             $teachersRemovedFromPayroll = $schoolQueries->getTeachersRemovedFromPayroll($uuid);
         }
 
         Utils::successResponse("success",[
-            "teacherTable" => $schoolQueries->getTeacherTable($uuid,$endDate,$isDistrictOfficerOrAbove),
-            "learnerTable" => $schoolQueries->getLearnerTable($uuid,$todayDate,$isDistrictOfficerOrAbove),
-            "teacherAttendanceBarchart" => $schoolQueries->getTeacherAttendanceBarchart($uuid,$startDate,$endDate),
-            "classroomTable" => $schoolQueries->getClassroomTable($uuid,$todayDate),
-            "teachersRemovedFromPayroll" => $teachersRemovedFromPayroll,
-            "date" => Carbon::parse($endDate)->isoFormat("dddd, Do MMM YYYY")
+            "teacherTable"              => $schoolQueries->getTeacherTable($uuid, $endDate, $canSeePrivateData),
+            "learnerTable"              => $schoolQueries->getLearnerTable($uuid, $todayDate, $canSeePrivateData),
+            "teacherAttendanceBarchart" => $schoolQueries->getTeacherAttendanceBarchart($uuid, $startDate, $endDate),
+            "classroomTable"            => $schoolQueries->getClassroomTable($uuid, $todayDate),
+            "teachersRemovedFromPayroll"=> $teachersRemovedFromPayroll,
+            "date"                      => Carbon::parse($endDate)->isoFormat("dddd, Do MMM YYYY")
         ]);
     }
 
@@ -443,8 +445,12 @@ class PublicController extends Controller
             $isDistrictOfficerOrAbove = true;
         }
 
+        $ay = DB::selectOne('SELECT date_from, date_to FROM school_academic_year WHERE active = 1 LIMIT 1');
+
         return view('learner-reports',[
-            'isDistrictOfficerOrAbove' => $isDistrictOfficerOrAbove
+            'isDistrictOfficerOrAbove' => $isDistrictOfficerOrAbove,
+            'ayDateFrom' => $ay->date_from ?? null,
+            'ayDateTo'   => $ay->date_to   ?? null,
         ]);
     }
 
@@ -477,7 +483,12 @@ class PublicController extends Controller
             $isDistrictOfficerOrAbove = true;
         }
         Utils::successResponse("success",[
-            "atRiskLearnersTable" => $learnerReports->getAtRiskLearnersChart($request->districtId,$isDistrictOfficerOrAbove)
+            "atRiskLearnersTable" => $learnerReports->getAtRiskLearnersChart(
+                $request->districtId,
+                $isDistrictOfficerOrAbove,
+                $request->month,
+                $request->year
+            )
         ]);
     }
 
@@ -557,8 +568,14 @@ class PublicController extends Controller
 
     public function learnerProfile($uuid, LearnerProfile $learnerProfile) {
         $isDistrictOfficerOrAbove = Auth::check() && Auth::user()->user_type_id >= 40;
-
         $details = $learnerProfile->learnerDetails($uuid);
+
+        $isSchoolLeaderWithAccess = !$isDistrictOfficerOrAbove
+            && $details
+            && !empty($details->school_uuid)
+            && $this->isSchoolLeaderOf($details->school_uuid);
+
+        $isDistrictOfficerOrAbove = $isDistrictOfficerOrAbove || $isSchoolLeaderWithAccess;
         $schoolHistory = $learnerProfile->schoolHistory($uuid);
         $attendanceSummary = $learnerProfile->attendanceSummary($uuid);
 
@@ -642,11 +659,34 @@ class PublicController extends Controller
         return view('school-feeding-secretariat');
     }
 
+    public function getLearnerPerformanceDashboard(LearnerPerformanceQueries $q, Request $request) {
+        $districtId  = $request->districtId  ?: null;
+        $termOid     = $request->termOid     ?: null;
+        $levelLabel  = $request->levelLabel  ?: null;
+
+        return Utils::successResponse("success", [
+            "summary"  => $q->summary($districtId, $termOid, $levelLabel),
+            "trends"   => $q->trends($districtId, $termOid, $levelLabel),
+            "subjects" => $q->subjects($districtId, $termOid, $levelLabel),
+        ]);
+    }
+
     public function getSchoolFeedingSecretariatTable(SchoolFeeding $schoolFeeding, Request $request)
     {
         return Utils::successResponse("success", [
             "rows" => $schoolFeeding->secretariatTable($request->districtId),
         ]);
+    }
+
+    private function isSchoolLeaderOf(string $schoolUuid): bool
+    {
+        if (!Auth::check() || Auth::user()->user_type_id != 20) {
+            return false;
+        }
+        return DB::table('user_scope_custom_assignment')
+            ->where('user_id', Auth::id())
+            ->where('school_uuid', $schoolUuid)
+            ->exists();
     }
 
 }

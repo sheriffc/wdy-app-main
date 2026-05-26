@@ -107,6 +107,25 @@
         </div>
 
         <div class="col-md-12 mt-4">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <label class="fw-semibold mb-0">Filter by Month:</label>
+                <select id="at-risk-month-filter" class="form-select form-select-sm" style="width:auto;">
+                    <option value="">All Months</option>
+                    @if(!empty($ayDateFrom) && !empty($ayDateTo))
+                        @php
+                            $cur = \Carbon\Carbon::parse($ayDateFrom)->startOfMonth();
+                            $end = \Carbon\Carbon::parse($ayDateTo)->startOfMonth();
+                        @endphp
+                        @while($cur->lte($end))
+                            <option value="{{ $cur->month }}-{{ $cur->year }}">{{ $cur->format('F Y') }}</option>
+                            @php $cur->addMonth() @endphp
+                        @endwhile
+                    @endif
+                </select>
+            </div>
+        </div>
+
+        <div class="col-md-12 mt-4">
             <h5 class="card-title">Persistently Absent Learners</h5>
             <p>These learners are defined to be absent between 10% to 49% of the time.</p>
             <div class="card">
@@ -116,6 +135,7 @@
                             <tr class="align-middle">
                                 <th class="text-start">Name</th>
                                 <th class="text-start">School</th>
+                                <th class="text-center">Absent Days (No Valid)</th>
                             </tr>
                         </thead>
                     </table>
@@ -133,6 +153,7 @@
                             <tr class="align-middle">
                                 <th class="text-start">Name</th>
                                 <th class="text-start">School</th>
+                                <th class="text-center">Absent Days (No Valid)</th>
                             </tr>
                         </thead>
                     </table>
@@ -147,6 +168,8 @@
 @section('script')
     <script>
         let selectedDistrict = null;
+        let selectedAtRiskMonth = null;
+        let selectedAtRiskYear = null;
         let dtDuplicateEnrollmentTableData = [];
         let dtDisabilityLearnersTableData = [];
         let dtUnassignedLearnersTableData = [];
@@ -169,6 +192,19 @@
             await requestDuplicateEnrollmentTableData();
             await requestDisabilityLearnerTableData();
             await requestUnassignedLearnerTableData();
+            await requestAtRiskLearnerTableData();
+        })
+
+        $("#at-risk-month-filter").on("change", async function () {
+            const val = this.value;
+            if (val) {
+                const parts = val.split('-');
+                selectedAtRiskMonth = parts[0];
+                selectedAtRiskYear  = parts[1];
+            } else {
+                selectedAtRiskMonth = null;
+                selectedAtRiskYear  = null;
+            }
             await requestAtRiskLearnerTableData();
         })
 
@@ -263,8 +299,10 @@
                 url: "/api/learner-reports/at-risk-learner-data",
                 type: "POST",
                 dataType: "json",
-                data: { 
-                    districtId: selectedDistrict
+                data: {
+                    districtId: selectedDistrict,
+                    month: selectedAtRiskMonth,
+                    year:  selectedAtRiskYear
                 },
                 success: function (response) {
                     let tableData = response.data.atRiskLearnersTable;
@@ -455,6 +493,7 @@
                         return `<a href="/school/${row.school_uuid}">${row.school_name}</a>`;
                     },
                 },
+                { data: 'absent_days', className: 'text-center' },
             ],
             order:[]
         });
@@ -484,6 +523,7 @@
                         return `<a href="/school/${row.school_uuid}">${row.school_name}</a>`;
                     },
                 },
+                { data: 'absent_days', className: 'text-center' },
             ],
             order:[]
         });
