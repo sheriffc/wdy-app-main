@@ -658,8 +658,8 @@
                                 @foreach($npseRows as $row)
                                 <tr>
                                     <td class="fw-semibold">{{ $row['name'] }}</td>
-                                    <td class="text-center table-primary fw-bold">{{ $row['cass'] !== null ? number_format($row['cass'], 1) : '—' }}</td>
-                                    <td class="text-center">{{ $row['cass_pct'] !== null ? number_format($row['cass_pct'], 2) . '%' : '—' }}</td>
+                                    <td class="text-center table-primary fw-bold">{{ $row['cass'] !== null ? round($row['cass']) : '—' }}</td>
+                                    <td class="text-center">{{ $row['cass_pct'] !== null ? round($row['cass_pct']) . '%' : '—' }}</td>
                                 </tr>
                                 @endforeach
                                 @php
@@ -669,8 +669,8 @@
                                 @endphp
                                 <tr class="table-light fw-bold border-top">
                                     <td>Overall</td>
-                                    <td class="text-center table-primary">{{ $npseOverall !== null ? number_format($npseOverall, 1) : '—' }}</td>
-                                    <td class="text-center">{{ $npseOverallPct !== null ? number_format($npseOverallPct, 2) . '%' : '—' }}</td>
+                                    <td class="text-center table-primary">{{ $npseOverall !== null ? round($npseOverall) : '—' }}</td>
+                                    <td class="text-center">{{ $npseOverallPct !== null ? round($npseOverallPct) . '%' : '—' }}</td>
                                 </tr>
                             </tbody>
                         </table>
