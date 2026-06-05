@@ -476,6 +476,80 @@
         @endforeach
         @endif
 
+        {{-- ── CASS CARDS ── --}}
+        @php
+            $cassConfig = [
+                'npse'   => ['title' => 'CASS for NPSE',   'levels' => 'Primary 4, 5 & 6'],
+                'bece'   => ['title' => 'CASS for BECE',   'levels' => 'JSS 1, 2 & 3'],
+                'wassce' => ['title' => 'CASS for WASSCE', 'levels' => 'SSS 1, 2 & 3'],
+            ];
+            $cassGrade = function($score) {
+                if ($score === null) return '—';
+                if ($score >= 75) return ['label' => 'A', 'class' => 'bg-success text-white'];
+                if ($score >= 65) return ['label' => 'B', 'class' => 'bg-info text-white'];
+                if ($score >= 50) return ['label' => 'C', 'class' => 'bg-warning text-dark'];
+                if ($score >= 40) return ['label' => 'D', 'class' => 'bg-secondary text-white'];
+                return ['label' => 'F', 'class' => 'bg-danger text-white'];
+            };
+        @endphp
+        @foreach($cassConfig as $type => $cfg)
+        @if(count($cassData[$type]) > 0)
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header fw-bold d-flex align-items-baseline gap-3">
+                    <span>{{ $cfg['title'] }}</span>
+                    <span class="text-muted fw-normal small">{{ $cfg['levels'] }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="min-width:160px">Subject</th>
+                                    <th class="text-center" style="width:110px">CA Score</th>
+                                    <th class="text-center" style="width:80px">Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($cassData[$type] as $row)
+                                @php $g = $cassGrade($row->ca_score); @endphp
+                                <tr>
+                                    <td class="fw-semibold">{{ $row->subject_name }}</td>
+                                    <td class="text-center">{{ $row->ca_score !== null ? number_format($row->ca_score, 1) : '—' }}</td>
+                                    <td class="text-center">
+                                        @if(is_array($g))
+                                            <span class="badge {{ $g['class'] }}">{{ $g['label'] }}</span>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                                @php
+                                    $validScores = array_filter(array_column((array)$cassData[$type], 'ca_score'), fn($v) => $v !== null);
+                                    $overallCass = count($validScores) > 0 ? round(array_sum($validScores) / count($validScores), 1) : null;
+                                    $overallGrade = $cassGrade($overallCass);
+                                @endphp
+                                <tr class="table-light fw-bold border-top">
+                                    <td>Overall CASS Average</td>
+                                    <td class="text-center">{{ $overallCass !== null ? number_format($overallCass, 1) : '—' }}</td>
+                                    <td class="text-center">
+                                        @if(is_array($overallGrade))
+                                            <span class="badge {{ $overallGrade['class'] }}">{{ $overallGrade['label'] }}</span>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+        @endforeach
+
         {{-- ── SCHOOL HISTORY ── --}}
         @if(count($schoolHistory) > 0)
         <div class="col-12">

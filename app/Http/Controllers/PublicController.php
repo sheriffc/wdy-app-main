@@ -573,6 +573,14 @@ class PublicController extends Controller
         $schoolHistory = $learnerProfile->schoolHistory($uuid);
         $attendanceSummary = $learnerProfile->attendanceSummary($uuid);
 
+        // Build CASS tables keyed by exam type
+        $cassData = ['npse' => [], 'bece' => [], 'wassce' => []];
+        foreach ($learnerProfile->cassData($uuid) as $row) {
+            if ($row->cass_type && array_key_exists($row->cass_type, $cassData)) {
+                $cassData[$row->cass_type][] = $row;
+            }
+        }
+
         // Pivot performance records by academic_year → subject, with each term inline
         $reportCard = [];
         foreach ($learnerProfile->performanceRecords($uuid) as $row) {
@@ -607,6 +615,7 @@ class PublicController extends Controller
             'schoolHistory'    => $schoolHistory,
             'attendanceSummary'=> $attendanceSummary,
             'reportCard'       => $reportCard,
+            'cassData'         => $cassData,
             'learnerUuid'      => $uuid,
         ]);
     }

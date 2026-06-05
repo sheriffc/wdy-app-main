@@ -207,6 +207,32 @@ class LearnerProfile {
         return DB::select($sql, [$learnerUuid]);
     }
 
+    public function cassData($learnerUuid) {
+        $sql = "
+            SELECT
+                CASE
+                    WHEN sg.school_group_level_oid IN ('p4','p5','p6')       THEN 'npse'
+                    WHEN sg.school_group_level_oid IN ('jss1','jss2','jss3') THEN 'bece'
+                    WHEN sg.school_group_level_oid IN ('sss1','sss2','sss3') THEN 'wassce'
+                END                                                          AS cass_type,
+                lp.subject_oid,
+                COALESCE(ol_subj.item_name, lp.subject_oid)                 AS subject_name,
+                COALESCE(ol_subj.display_order, 9999)                       AS subject_order,
+                ROUND(AVG((lp.assessment_1_score + lp.assessment_2_score) / 2), 1) AS ca_score
+            FROM learner_performance lp
+            LEFT JOIN school_group sg ON sg.uuid = lp.school_group_uuid
+            LEFT JOIN option_list ol_subj
+                ON ol_subj.list_name = 'school_subject'
+                AND ol_subj.item_id = lp.subject_oid
+            WHERE lp.learner_uuid = ?
+                AND lp.deleted_at IS NULL
+                AND sg.school_group_level_oid IN ('p4','p5','p6','jss1','jss2','jss3','sss1','sss2','sss3')
+            GROUP BY cass_type, lp.subject_oid, subject_name, subject_order
+            ORDER BY cass_type, subject_order, subject_name
+        ";
+        return DB::select($sql, [$learnerUuid]);
+    }
+
     public function attendanceSummary($learnerUuid) {
         $sql = "
             SELECT
