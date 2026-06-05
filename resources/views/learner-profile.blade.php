@@ -478,13 +478,9 @@
 
         {{-- ── CASS CARDS ── --}}
         @php
-            $cassConfig = [
-                'npse'   => ['title' => 'Continuous Assessment Score', 'subtitle' => 'Primary 4, 5 & 6'],
-                'bece'   => ['title' => 'CASS for BECE',   'subtitle' => 'JSS 1, 2 & 3'],
-                'wassce' => ['title' => 'CASS for WASSCE', 'subtitle' => 'SSS 1, 2 & 3'],
-            ];
             $fmtCa = fn($v) => $v !== null ? number_format((float)$v, 1) : '—';
-            // Weighted CASS: (L1×1 + L2×1 + L3×2) / 4 — denominator is always 4
+
+            // BECE/WASSCE: (L1×1 + L2×1 + L3×2) / 4 — denominator always 4
             $cassWeights    = [0 => 1, 1 => 1, 2 => 2];
             $calcWeightedCa = function(array $levelKeys, array $scores) use ($cassWeights) {
                 $wSum = 0; $hasAny = false;
@@ -494,11 +490,51 @@
                 }
                 return $hasAny ? round($wSum / array_sum($cassWeights), 1) : null;
             };
+
+            // NPSE: (P5 + P6) / 2 — denominator always 2
+            $calcNpseCa = function(array $scores) {
+                $p5 = $scores['p5'] ?? null;
+                $p6 = $scores['p6'] ?? null;
+                if ($p5 === null && $p6 === null) return null;
+                return round((($p5 ?? 0) + ($p6 ?? 0)) / 2, 1);
+            };
+
+            $cassConfig = [
+                'npse'   => [
+                    'title'       => 'Continuous Assessment Score',
+                    'subtitle'    => 'Primary 4, 5 & 6',
+                    'show_levels' => ['p5', 'p6'],
+                    'cass_pct'    => 0.10,
+                    'calc_cass'   => $calcNpseCa,
+                ],
+                'bece'   => [
+                    'title'       => 'CASS for BECE',
+                    'subtitle'    => 'JSS 1, 2 & 3',
+                    'show_levels' => null,
+                    'cass_pct'    => 0.20,
+                    'calc_cass'   => null,
+                ],
+                'wassce' => [
+                    'title'       => 'CASS for WASSCE',
+                    'subtitle'    => 'SSS 1, 2 & 3',
+                    'show_levels' => null,
+                    'cass_pct'    => 0.20,
+                    'calc_cass'   => null,
+                ],
+            ];
         @endphp
         @foreach($cassConfig as $type => $cfg)
         @php
             $typeData  = $cassData[$type];
-            $levelKeys = array_values(array_intersect($cassLevelOrder[$type], array_keys($typeData['levels'])));
+            $allLevelKeys = array_values(array_intersect($cassLevelOrder[$type], array_keys($typeData['levels'])));
+            // Filter display columns if show_levels is set
+            $levelKeys = $cfg['show_levels'] !== null
+                ? array_values(array_intersect($cfg['show_levels'], $allLevelKeys))
+                : $allLevelKeys;
+            $cassPctFactor = $cfg['cass_pct'];
+            $calcCassForType = $cfg['calc_cass'] !== null
+                ? fn($levelKeys, $scores) => ($cfg['calc_cass'])($scores)
+                : $calcWeightedCa;
         @endphp
         @if(count($typeData['subjects']) > 0)
         <div class="col-12">
@@ -523,8 +559,8 @@
                             <tbody>
                                 @foreach($typeData['subjects'] as $subj)
                                 @php
-                                    $cassAvg = $calcWeightedCa($levelKeys, $subj['scores']);
-                                    $cassPct = $cassAvg !== null ? round($cassAvg * 0.20, 2) : null;
+                                    $cassAvg = $calcCassForType($levelKeys, $subj['scores']);
+                                    $cassPct = $cassAvg !== null ? round($cassAvg * $cassPctFactor, 2) : null;
                                 @endphp
                                 <tr>
                                     <td class="fw-semibold">{{ $subj['subject_name'] }}</td>
@@ -536,16 +572,16 @@
                                 </tr>
                                 @endforeach
                                 @php
-                                    // Overall row: mean of per-subject weighted CASS averages
+                                    // Overall row: mean of per-subject CASS averages
                                     $allCassScores = [];
                                     foreach ($typeData['subjects'] as $subj) {
-                                        $ca = $calcWeightedCa($levelKeys, $subj['scores']);
+                                        $ca = $calcCassForType($levelKeys, $subj['scores']);
                                         if ($ca !== null) $allCassScores[] = $ca;
                                     }
                                     $overallCass  = count($allCassScores) > 0
                                         ? round(array_sum($allCassScores) / count($allCassScores), 1)
                                         : null;
-                                    $overallPct   = $overallCass !== null ? round($overallCass * 0.20, 2) : null;
+                                    $overallPct   = $overallCass !== null ? round($overallCass * $cassPctFactor, 2) : null;
                                     // Per-level totals for overall row
                                     $levelTotals = [];
                                     foreach ($levelKeys as $lk) {
