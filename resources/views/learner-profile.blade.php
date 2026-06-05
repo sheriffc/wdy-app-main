@@ -508,14 +508,14 @@
                     'calc_cass'   => $calcNpseCa,
                 ],
                 'bece'   => [
-                    'title'       => 'CASS for BECE',
+                    'title'       => 'Continuous Assessment Score',
                     'subtitle'    => 'JSS 1, 2 & 3',
                     'show_levels' => null,
                     'cass_pct'    => 0.20,
                     'calc_cass'   => null,
                 ],
                 'wassce' => [
-                    'title'       => 'CASS for WASSCE',
+                    'title'       => 'Continuous Assessment Score',
                     'subtitle'    => 'SSS 1, 2 & 3',
                     'show_levels' => null,
                     'cass_pct'    => 0.20,
