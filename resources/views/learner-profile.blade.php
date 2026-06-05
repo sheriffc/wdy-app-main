@@ -492,15 +492,15 @@
                 return ['label' => 'F', 'class' => 'bg-danger text-white'];
             };
             $fmtCa = fn($v) => $v !== null ? number_format((float)$v, 1) : '—';
-            // Weighted CASS: level1×1 + level2×1 + level3×2, denominator = sum of present weights
+            // Weighted CASS: (L1×1 + L2×1 + L3×2) / 4 — denominator is always 4
             $cassWeights    = [0 => 1, 1 => 1, 2 => 2];
             $calcWeightedCa = function(array $levelKeys, array $scores) use ($cassWeights) {
-                $wSum = 0; $wTotal = 0;
+                $wSum = 0; $hasAny = false;
                 foreach ($levelKeys as $i => $lk) {
                     $v = $scores[$lk] ?? null;
-                    if ($v !== null) { $wSum += $v * $cassWeights[$i]; $wTotal += $cassWeights[$i]; }
+                    if ($v !== null) { $wSum += $v * $cassWeights[$i]; $hasAny = true; }
                 }
-                return $wTotal > 0 ? round($wSum / $wTotal, 1) : null;
+                return $hasAny ? round($wSum / array_sum($cassWeights), 1) : null;
             };
         @endphp
         @foreach($cassConfig as $type => $cfg)
