@@ -483,14 +483,6 @@
                 'bece'   => ['title' => 'CASS for BECE',   'subtitle' => 'JSS 1, 2 & 3'],
                 'wassce' => ['title' => 'CASS for WASSCE', 'subtitle' => 'SSS 1, 2 & 3'],
             ];
-            $cassGrade = function($score) {
-                if ($score === null) return null;
-                if ($score >= 75) return ['label' => 'A', 'class' => 'bg-success text-white'];
-                if ($score >= 65) return ['label' => 'B', 'class' => 'bg-info text-white'];
-                if ($score >= 50) return ['label' => 'C', 'class' => 'bg-warning text-dark'];
-                if ($score >= 40) return ['label' => 'D', 'class' => 'bg-secondary text-white'];
-                return ['label' => 'F', 'class' => 'bg-danger text-white'];
-            };
             $fmtCa = fn($v) => $v !== null ? number_format((float)$v, 1) : '—';
             // Weighted CASS: (L1×1 + L2×1 + L3×2) / 4 — denominator is always 4
             $cassWeights    = [0 => 1, 1 => 1, 2 => 2];
@@ -525,14 +517,14 @@
                                         <th class="text-center" style="width:110px">{{ $typeData['levels'][$lk] }} CA</th>
                                     @endforeach
                                     <th class="text-center table-primary fw-bold" style="width:110px">CASS</th>
-                                    <th class="text-center" style="width:75px">Grade</th>
+                                    <th class="text-center" style="width:90px">CASS %</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($typeData['subjects'] as $subj)
                                 @php
                                     $cassAvg = $calcWeightedCa($levelKeys, $subj['scores']);
-                                    $g       = $cassGrade($cassAvg);
+                                    $cassPct = $cassAvg !== null ? round($cassAvg * 0.20, 2) : null;
                                 @endphp
                                 <tr>
                                     <td class="fw-semibold">{{ $subj['subject_name'] }}</td>
@@ -540,9 +532,7 @@
                                         <td class="text-center">{{ $fmtCa($subj['scores'][$lk] ?? null) }}</td>
                                     @endforeach
                                     <td class="text-center table-primary fw-bold">{{ $fmtCa($cassAvg) }}</td>
-                                    <td class="text-center">
-                                        @if($g)<span class="badge {{ $g['class'] }}">{{ $g['label'] }}</span>@else<span class="text-muted">—</span>@endif
-                                    </td>
+                                    <td class="text-center">{{ $cassPct !== null ? number_format($cassPct, 2) . '%' : '—' }}</td>
                                 </tr>
                                 @endforeach
                                 @php
@@ -555,7 +545,7 @@
                                     $overallCass  = count($allCassScores) > 0
                                         ? round(array_sum($allCassScores) / count($allCassScores), 1)
                                         : null;
-                                    $overallGrade = $cassGrade($overallCass);
+                                    $overallPct   = $overallCass !== null ? round($overallCass * 0.20, 2) : null;
                                     // Per-level totals for overall row
                                     $levelTotals = [];
                                     foreach ($levelKeys as $lk) {
@@ -574,9 +564,7 @@
                                         <td class="text-center">{{ $fmtCa($levelTotals[$lk]) }}</td>
                                     @endforeach
                                     <td class="text-center table-primary">{{ $fmtCa($overallCass) }}</td>
-                                    <td class="text-center">
-                                        @if($overallGrade)<span class="badge {{ $overallGrade['class'] }}">{{ $overallGrade['label'] }}</span>@else<span class="text-muted">—</span>@endif
-                                    </td>
+                                    <td class="text-center">{{ $overallPct !== null ? number_format($overallPct, 2) . '%' : '—' }}</td>
                                 </tr>
                             </tbody>
                         </table>
