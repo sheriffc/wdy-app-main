@@ -492,6 +492,16 @@
                 return ['label' => 'F', 'class' => 'bg-danger text-white'];
             };
             $fmtCa = fn($v) => $v !== null ? number_format((float)$v, 1) : '—';
+            // Weighted CASS: level1×1 + level2×1 + level3×2, denominator = sum of present weights
+            $cassWeights    = [0 => 1, 1 => 1, 2 => 2];
+            $calcWeightedCa = function(array $levelKeys, array $scores) use ($cassWeights) {
+                $wSum = 0; $wTotal = 0;
+                foreach ($levelKeys as $i => $lk) {
+                    $v = $scores[$lk] ?? null;
+                    if ($v !== null) { $wSum += $v * $cassWeights[$i]; $wTotal += $cassWeights[$i]; }
+                }
+                return $wTotal > 0 ? round($wSum / $wTotal, 1) : null;
+            };
         @endphp
         @foreach($cassConfig as $type => $cfg)
         @php
@@ -521,14 +531,8 @@
                             <tbody>
                                 @foreach($typeData['subjects'] as $subj)
                                 @php
-                                    $levelScores = array_filter(
-                                        array_map(fn($lk) => $subj['scores'][$lk] ?? null, $levelKeys),
-                                        fn($v) => $v !== null
-                                    );
-                                    $cassAvg  = count($levelScores) > 0
-                                        ? round(array_sum($levelScores) / count($levelScores), 1)
-                                        : null;
-                                    $g = $cassGrade($cassAvg);
+                                    $cassAvg = $calcWeightedCa($levelKeys, $subj['scores']);
+                                    $g       = $cassGrade($cassAvg);
                                 @endphp
                                 <tr>
                                     <td class="fw-semibold">{{ $subj['subject_name'] }}</td>
@@ -542,14 +546,11 @@
                                 </tr>
                                 @endforeach
                                 @php
-                                    // Overall row: mean of per-subject CASS averages
+                                    // Overall row: mean of per-subject weighted CASS averages
                                     $allCassScores = [];
                                     foreach ($typeData['subjects'] as $subj) {
-                                        $ls = array_filter(
-                                            array_map(fn($lk) => $subj['scores'][$lk] ?? null, $levelKeys),
-                                            fn($v) => $v !== null
-                                        );
-                                        if (count($ls)) $allCassScores[] = array_sum($ls) / count($ls);
+                                        $ca = $calcWeightedCa($levelKeys, $subj['scores']);
+                                        if ($ca !== null) $allCassScores[] = $ca;
                                     }
                                     $overallCass  = count($allCassScores) > 0
                                         ? round(array_sum($allCassScores) / count($allCassScores), 1)
