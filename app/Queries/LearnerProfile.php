@@ -215,20 +215,25 @@ class LearnerProfile {
                     WHEN sg.school_group_level_oid IN ('jss1','jss2','jss3') THEN 'bece'
                     WHEN sg.school_group_level_oid IN ('sss1','sss2','sss3') THEN 'wassce'
                 END                                                          AS cass_type,
+                sg.school_group_level_oid                                    AS level_oid,
+                ol_level.item_name                                           AS level_name,
                 lp.subject_oid,
                 COALESCE(ol_subj.item_name, lp.subject_oid)                 AS subject_name,
                 COALESCE(ol_subj.display_order, 9999)                       AS subject_order,
                 ROUND(AVG((lp.assessment_1_score + lp.assessment_2_score) / 2), 1) AS ca_score
             FROM learner_performance lp
             LEFT JOIN school_group sg ON sg.uuid = lp.school_group_uuid
+            LEFT JOIN option_list ol_level
+                ON ol_level.list_name = 'school_group_level'
+                AND ol_level.item_id = sg.school_group_level_oid
             LEFT JOIN option_list ol_subj
                 ON ol_subj.list_name = 'school_subject'
                 AND ol_subj.item_id = lp.subject_oid
             WHERE lp.learner_uuid = ?
                 AND lp.deleted_at IS NULL
                 AND sg.school_group_level_oid IN ('p4','p5','p6','jss1','jss2','jss3','sss1','sss2','sss3')
-            GROUP BY cass_type, lp.subject_oid, subject_name, subject_order
-            ORDER BY cass_type, subject_order, subject_name
+            GROUP BY cass_type, level_oid, level_name, lp.subject_oid, subject_name, subject_order
+            ORDER BY cass_type, ol_level.display_order, subject_order, subject_name
         ";
         return DB::select($sql, [$learnerUuid]);
     }

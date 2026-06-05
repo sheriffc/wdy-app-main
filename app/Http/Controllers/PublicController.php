@@ -573,13 +573,35 @@ class PublicController extends Controller
         $schoolHistory = $learnerProfile->schoolHistory($uuid);
         $attendanceSummary = $learnerProfile->attendanceSummary($uuid);
 
-        // Build CASS tables keyed by exam type
-        $cassData = ['npse' => [], 'bece' => [], 'wassce' => []];
+        // Build CASS tables: per exam-type, pivot subjects × levels
+        $cassLevelOrder = [
+            'npse'   => ['p4', 'p5', 'p6'],
+            'bece'   => ['jss1', 'jss2', 'jss3'],
+            'wassce' => ['sss1', 'sss2', 'sss3'],
+        ];
+        $cassData = array_fill_keys(array_keys($cassLevelOrder), ['levels' => [], 'subjects' => []]);
         foreach ($learnerProfile->cassData($uuid) as $row) {
-            if ($row->cass_type && array_key_exists($row->cass_type, $cassData)) {
-                $cassData[$row->cass_type][] = $row;
+            if (!$row->cass_type || !array_key_exists($row->cass_type, $cassData)) continue;
+            $type  = $row->cass_type;
+            $level = $row->level_oid;
+            $subj  = $row->subject_oid;
+            if (!isset($cassData[$type]['levels'][$level])) {
+                $cassData[$type]['levels'][$level] = $row->level_name;
             }
+            if (!isset($cassData[$type]['subjects'][$subj])) {
+                $cassData[$type]['subjects'][$subj] = [
+                    'subject_name'  => $row->subject_name,
+                    'subject_order' => $row->subject_order,
+                    'scores'        => [],
+                ];
+            }
+            $cassData[$type]['subjects'][$subj]['scores'][$level] = $row->ca_score;
         }
+        // Sort subjects by display_order within each type
+        foreach ($cassData as &$typeData) {
+            uasort($typeData['subjects'], fn($a, $b) => $a['subject_order'] <=> $b['subject_order']);
+        }
+        unset($typeData);
 
         // Pivot performance records by academic_year → subject, with each term inline
         $reportCard = [];
@@ -616,6 +638,7 @@ class PublicController extends Controller
             'attendanceSummary'=> $attendanceSummary,
             'reportCard'       => $reportCard,
             'cassData'         => $cassData,
+            'cassLevelOrder'   => $cassLevelOrder,
             'learnerUuid'      => $uuid,
         ]);
     }

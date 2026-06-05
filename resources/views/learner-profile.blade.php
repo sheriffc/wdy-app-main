@@ -479,26 +479,31 @@
         {{-- ── CASS CARDS ── --}}
         @php
             $cassConfig = [
-                'npse'   => ['title' => 'CASS for NPSE',   'levels' => 'Primary 4, 5 & 6'],
-                'bece'   => ['title' => 'CASS for BECE',   'levels' => 'JSS 1, 2 & 3'],
-                'wassce' => ['title' => 'CASS for WASSCE', 'levels' => 'SSS 1, 2 & 3'],
+                'npse'   => ['title' => 'CASS for NPSE',   'subtitle' => 'Primary 4, 5 & 6'],
+                'bece'   => ['title' => 'CASS for BECE',   'subtitle' => 'JSS 1, 2 & 3'],
+                'wassce' => ['title' => 'CASS for WASSCE', 'subtitle' => 'SSS 1, 2 & 3'],
             ];
             $cassGrade = function($score) {
-                if ($score === null) return '—';
+                if ($score === null) return null;
                 if ($score >= 75) return ['label' => 'A', 'class' => 'bg-success text-white'];
                 if ($score >= 65) return ['label' => 'B', 'class' => 'bg-info text-white'];
                 if ($score >= 50) return ['label' => 'C', 'class' => 'bg-warning text-dark'];
                 if ($score >= 40) return ['label' => 'D', 'class' => 'bg-secondary text-white'];
                 return ['label' => 'F', 'class' => 'bg-danger text-white'];
             };
+            $fmtCa = fn($v) => $v !== null ? number_format((float)$v, 1) : '—';
         @endphp
         @foreach($cassConfig as $type => $cfg)
-        @if(count($cassData[$type]) > 0)
+        @php
+            $typeData  = $cassData[$type];
+            $levelKeys = array_values(array_intersect($cassLevelOrder[$type], array_keys($typeData['levels'])));
+        @endphp
+        @if(count($typeData['subjects']) > 0)
         <div class="col-12">
             <div class="card">
                 <div class="card-header fw-bold d-flex align-items-baseline gap-3">
                     <span>{{ $cfg['title'] }}</span>
-                    <span class="text-muted fw-normal small">{{ $cfg['levels'] }}</span>
+                    <span class="text-muted fw-normal small">{{ $cfg['subtitle'] }}</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -506,39 +511,70 @@
                             <thead class="table-light">
                                 <tr>
                                     <th style="min-width:160px">Subject</th>
-                                    <th class="text-center" style="width:110px">CA Score</th>
-                                    <th class="text-center" style="width:80px">Grade</th>
+                                    @foreach($levelKeys as $lk)
+                                        <th class="text-center" style="width:110px">{{ $typeData['levels'][$lk] }} CA</th>
+                                    @endforeach
+                                    <th class="text-center table-primary fw-bold" style="width:110px">CASS</th>
+                                    <th class="text-center" style="width:75px">Grade</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($cassData[$type] as $row)
-                                @php $g = $cassGrade($row->ca_score); @endphp
+                                @foreach($typeData['subjects'] as $subj)
+                                @php
+                                    $levelScores = array_filter(
+                                        array_map(fn($lk) => $subj['scores'][$lk] ?? null, $levelKeys),
+                                        fn($v) => $v !== null
+                                    );
+                                    $cassAvg  = count($levelScores) > 0
+                                        ? round(array_sum($levelScores) / count($levelScores), 1)
+                                        : null;
+                                    $g = $cassGrade($cassAvg);
+                                @endphp
                                 <tr>
-                                    <td class="fw-semibold">{{ $row->subject_name }}</td>
-                                    <td class="text-center">{{ $row->ca_score !== null ? number_format($row->ca_score, 1) : '—' }}</td>
+                                    <td class="fw-semibold">{{ $subj['subject_name'] }}</td>
+                                    @foreach($levelKeys as $lk)
+                                        <td class="text-center">{{ $fmtCa($subj['scores'][$lk] ?? null) }}</td>
+                                    @endforeach
+                                    <td class="text-center table-primary fw-bold">{{ $fmtCa($cassAvg) }}</td>
                                     <td class="text-center">
-                                        @if(is_array($g))
-                                            <span class="badge {{ $g['class'] }}">{{ $g['label'] }}</span>
-                                        @else
-                                            <span class="text-muted">—</span>
-                                        @endif
+                                        @if($g)<span class="badge {{ $g['class'] }}">{{ $g['label'] }}</span>@else<span class="text-muted">—</span>@endif
                                     </td>
                                 </tr>
                                 @endforeach
                                 @php
-                                    $validScores = array_filter(array_column((array)$cassData[$type], 'ca_score'), fn($v) => $v !== null);
-                                    $overallCass = count($validScores) > 0 ? round(array_sum($validScores) / count($validScores), 1) : null;
+                                    // Overall row: mean of per-subject CASS averages
+                                    $allCassScores = [];
+                                    foreach ($typeData['subjects'] as $subj) {
+                                        $ls = array_filter(
+                                            array_map(fn($lk) => $subj['scores'][$lk] ?? null, $levelKeys),
+                                            fn($v) => $v !== null
+                                        );
+                                        if (count($ls)) $allCassScores[] = array_sum($ls) / count($ls);
+                                    }
+                                    $overallCass  = count($allCassScores) > 0
+                                        ? round(array_sum($allCassScores) / count($allCassScores), 1)
+                                        : null;
                                     $overallGrade = $cassGrade($overallCass);
+                                    // Per-level totals for overall row
+                                    $levelTotals = [];
+                                    foreach ($levelKeys as $lk) {
+                                        $vals = array_filter(array_column(
+                                            array_map(fn($s) => ['v' => $s['scores'][$lk] ?? null], $typeData['subjects']),
+                                            'v'
+                                        ), fn($v) => $v !== null);
+                                        $levelTotals[$lk] = count($vals) > 0
+                                            ? round(array_sum($vals) / count($vals), 1)
+                                            : null;
+                                    }
                                 @endphp
                                 <tr class="table-light fw-bold border-top">
-                                    <td>Overall CASS Average</td>
-                                    <td class="text-center">{{ $overallCass !== null ? number_format($overallCass, 1) : '—' }}</td>
+                                    <td>Overall</td>
+                                    @foreach($levelKeys as $lk)
+                                        <td class="text-center">{{ $fmtCa($levelTotals[$lk]) }}</td>
+                                    @endforeach
+                                    <td class="text-center table-primary">{{ $fmtCa($overallCass) }}</td>
                                     <td class="text-center">
-                                        @if(is_array($overallGrade))
-                                            <span class="badge {{ $overallGrade['class'] }}">{{ $overallGrade['label'] }}</span>
-                                        @else
-                                            <span class="text-muted">—</span>
-                                        @endif
+                                        @if($overallGrade)<span class="badge {{ $overallGrade['class'] }}">{{ $overallGrade['label'] }}</span>@else<span class="text-muted">—</span>@endif
                                     </td>
                                 </tr>
                             </tbody>
