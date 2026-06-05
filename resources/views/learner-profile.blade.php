@@ -479,7 +479,7 @@
         {{-- ── CASS CARDS ── --}}
         @php
             $cassConfig = [
-                'npse'   => ['title' => 'CASS for NPSE',   'subtitle' => 'Primary 4, 5 & 6'],
+                'npse'   => ['title' => 'Continuous Assessment Score', 'subtitle' => 'Primary 4, 5 & 6'],
                 'bece'   => ['title' => 'CASS for BECE',   'subtitle' => 'JSS 1, 2 & 3'],
                 'wassce' => ['title' => 'CASS for WASSCE', 'subtitle' => 'SSS 1, 2 & 3'],
             ];
