@@ -619,7 +619,7 @@
                 ['name' => 'Mathematics',             'oids' => ['pri_maths']],
                 ['name' => 'Quantitative Aptitude',   'oids' => ['pri_quant']],
                 ['name' => 'Verbal Aptitude',         'oids' => ['pri_verbal']],
-                ['name' => 'General Paper',           'oids' => ['pri_gen_science']],
+                ['name' => 'General Paper',           'oids' => ['pri_social','pri_gen_science','pri_phe','pri_agric','pri_creative','pri_rme','pri_pre_voc','pri_french']],
             ];
             $npseRows = [];
             foreach ($npseSubjects as $subj) {
