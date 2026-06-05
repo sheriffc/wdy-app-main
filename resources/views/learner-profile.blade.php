@@ -613,19 +613,24 @@
 
         {{-- ── CASS FOR NPSE ── --}}
         @php
+            // English Language is the mean CASS of 5 combined subjects
             $npseSubjects = [
-                'pri_english'     => 'English Language',
-                'pri_maths'       => 'Mathematics',
-                'pri_quant'       => 'Quantitative Aptitude',
-                'pri_verbal'      => 'Verbal Aptitude',
-                'pri_gen_science' => 'General Paper',
+                ['name' => 'English Language',       'oids' => ['pri_english','pri_reading','pri_spelling','pri_poetry','pri_composition']],
+                ['name' => 'Mathematics',             'oids' => ['pri_maths']],
+                ['name' => 'Quantitative Aptitude',   'oids' => ['pri_quant']],
+                ['name' => 'Verbal Aptitude',         'oids' => ['pri_verbal']],
+                ['name' => 'General Paper',           'oids' => ['pri_gen_science']],
             ];
             $npseRows = [];
-            foreach ($npseSubjects as $oid => $displayName) {
-                $scores  = $cassData['npse']['subjects'][$oid]['scores'] ?? [];
-                $cassAvg = $calcNpseCa($scores);
+            foreach ($npseSubjects as $subj) {
+                $cassScores = [];
+                foreach ($subj['oids'] as $oid) {
+                    $ca = $calcNpseCa($cassData['npse']['subjects'][$oid]['scores'] ?? []);
+                    if ($ca !== null) $cassScores[] = $ca;
+                }
+                $cassAvg = count($cassScores) > 0 ? round(array_sum($cassScores) / count($cassScores), 1) : null;
                 $npseRows[] = [
-                    'name'     => $displayName,
+                    'name'     => $subj['name'],
                     'cass'     => $cassAvg,
                     'cass_pct' => $cassAvg !== null ? round($cassAvg * 0.10, 2) : null,
                 ];
