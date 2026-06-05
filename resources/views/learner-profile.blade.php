@@ -502,7 +502,7 @@
             $cassConfig = [
                 'npse'   => [
                     'title'       => 'Continuous Assessment Score',
-                    'subtitle'    => 'Primary 4, 5 & 6',
+                    'subtitle'    => 'Primary 5 & 6',
                     'show_levels' => ['p5', 'p6'],
                     'cass_pct'    => 0.10,
                     'calc_cass'   => $calcNpseCa,
