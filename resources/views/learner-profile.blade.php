@@ -642,7 +642,7 @@
             <div class="card">
                 <div class="card-header fw-bold d-flex align-items-baseline gap-3">
                     <span>CASS for NPSE</span>
-                    <span class="text-muted fw-normal small">5 Major NPSE Subjects</span>
+                    <span class="text-muted fw-normal small">5 Major NPSE Subjects (10%)</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
