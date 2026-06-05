@@ -611,6 +611,70 @@
         @endif
         @endforeach
 
+        {{-- ── CASS FOR NPSE ── --}}
+        @php
+            $npseSubjects = [
+                'pri_english'     => 'English Language',
+                'pri_maths'       => 'Mathematics',
+                'pri_quant'       => 'Quantitative Aptitude',
+                'pri_verbal'      => 'Verbal Aptitude',
+                'pri_gen_science' => 'General Paper',
+            ];
+            $npseRows = [];
+            foreach ($npseSubjects as $oid => $displayName) {
+                $scores  = $cassData['npse']['subjects'][$oid]['scores'] ?? [];
+                $cassAvg = $calcNpseCa($scores);
+                $npseRows[] = [
+                    'name'     => $displayName,
+                    'cass'     => $cassAvg,
+                    'cass_pct' => $cassAvg !== null ? round($cassAvg * 0.10, 2) : null,
+                ];
+            }
+            $npseHasData = count(array_filter($npseRows, fn($r) => $r['cass'] !== null)) > 0;
+        @endphp
+        @if($npseHasData)
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header fw-bold d-flex align-items-baseline gap-3">
+                    <span>CASS for NPSE</span>
+                    <span class="text-muted fw-normal small">5 Major NPSE Subjects</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="min-width:200px">Subject</th>
+                                    <th class="text-center table-primary fw-bold" style="width:110px">CASS</th>
+                                    <th class="text-center" style="width:90px">CASS %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($npseRows as $row)
+                                <tr>
+                                    <td class="fw-semibold">{{ $row['name'] }}</td>
+                                    <td class="text-center table-primary fw-bold">{{ $row['cass'] !== null ? number_format($row['cass'], 1) : '—' }}</td>
+                                    <td class="text-center">{{ $row['cass_pct'] !== null ? number_format($row['cass_pct'], 2) . '%' : '—' }}</td>
+                                </tr>
+                                @endforeach
+                                @php
+                                    $npseValidCass = array_filter(array_column($npseRows, 'cass'), fn($v) => $v !== null);
+                                    $npseOverall   = count($npseValidCass) > 0 ? round(array_sum($npseValidCass) / count($npseValidCass), 1) : null;
+                                    $npseOverallPct = $npseOverall !== null ? round($npseOverall * 0.10, 2) : null;
+                                @endphp
+                                <tr class="table-light fw-bold border-top">
+                                    <td>Overall</td>
+                                    <td class="text-center table-primary">{{ $npseOverall !== null ? number_format($npseOverall, 1) : '—' }}</td>
+                                    <td class="text-center">{{ $npseOverallPct !== null ? number_format($npseOverallPct, 2) . '%' : '—' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- ── SCHOOL HISTORY ── --}}
         @if(count($schoolHistory) > 0)
         <div class="col-12">
