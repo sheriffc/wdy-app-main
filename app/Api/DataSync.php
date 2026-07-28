@@ -3,6 +3,8 @@
 namespace App\Api;
 
 use App\Common\Utils;
+use App\Services\LearnerIdService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class DataSync
@@ -25,6 +27,13 @@ class DataSync
                             }
                         }
                     }
+
+                    if ($table === 'learner') {
+                        $record = self::persistLearnerRecord($record);
+                        $payload[$table][] = ["pkCn"=>"uuid","id"=>$record['uuid'],"learner_id"=>$record['learner_id']];
+                        continue;
+                    }
+
                     $affected = DB::table($table)->upsert(
                         $record,
                         ['uuid']
@@ -38,6 +47,80 @@ class DataSync
 
         }
         return $payload;
+    }
+
+    /**
+     * Insert/update a learner record without relying on upsert()'s "ON DUPLICATE
+     * KEY UPDATE" semantics: once learner_id is uniquely indexed, upsert() keyed
+     * on uuid alone would silently overwrite a *different* learner's row if the
+     * incoming learner_id collides with it (MySQL's ODKU fires on any unique key
+     * match, not just the one named). This does an explicit exists-check first.
+     *
+     * Ownership rule: once a learner_id is set server-side, it always wins over
+     * whatever the client re-uploads — this keeps a re-synced/edited learner from
+     * "colliding with itself" and burning a fresh sequence number every sync.
+     */
+    private static function persistLearnerRecord(array $record): array
+    {
+        $existing = DB::table('learner')->where('uuid', $record['uuid'])->first();
+
+        if ($existing && !empty($existing->learner_id)) {
+            $record['learner_id'] = $existing->learner_id;
+        } elseif (!empty($record['learner_id'])) {
+            $record['learner_id'] = self::resolveLearnerIdCollision($record['uuid'], $record['learner_id']);
+        }
+
+        if ($existing) {
+            DB::table('learner')->where('uuid', $record['uuid'])->update($record);
+            return $record;
+        }
+
+        try {
+            DB::table('learner')->insert($record);
+        } catch (QueryException $e) {
+            // SQLSTATE 23000: integrity constraint violation (e.g. duplicate learner_id
+            // from a near-simultaneous upload). Recompute and retry once.
+            if ($e->getCode() !== '23000') {
+                throw $e;
+            }
+            if (!empty($record['learner_id'])) {
+                $record['learner_id'] = self::resolveLearnerIdCollision($record['uuid'], $record['learner_id'], true);
+            }
+            DB::table('learner')->insert($record);
+        }
+
+        return $record;
+    }
+
+    private static function resolveLearnerIdCollision(string $uuid, string $learnerId, bool $forceRegenerate = false): string
+    {
+        $collision = $forceRegenerate || DB::table('learner')
+            ->where('learner_id', $learnerId)
+            ->where('uuid', '<>', $uuid)
+            ->exists(); // no deleted_at filter — soft-deleted rows still hold their id
+
+        if (!$collision) {
+            return $learnerId;
+        }
+
+        $parsed = LearnerIdService::parse($learnerId);
+        if (!$parsed) {
+            return $learnerId;
+        }
+
+        $newLearnerId = LearnerIdService::format(
+            $parsed['prefix'],
+            $parsed['year'],
+            LearnerIdService::nextAvailable($parsed['prefix'], $parsed['year'])
+        );
+
+        logger()->warning('learner_id collision auto-resolved', [
+            'uuid' => $uuid,
+            'submitted_learner_id' => $learnerId,
+            'new_learner_id' => $newLearnerId,
+        ]);
+
+        return $newLearnerId;
     }
 
     /**
@@ -80,6 +163,12 @@ class DataSync
                                 $record[$field] = self::enforceNoneExclusive($record[$field]);
                             }
                         }
+                    }
+
+                    if ($table === 'learner') {
+                        $record = self::persistLearnerRecord($record);
+                        $payload[$table][] = ["pkCn"=>"uuid","id"=>$record['uuid'],"learner_id"=>$record['learner_id']];
+                        continue;
                     }
 
                     $affected = DB::table($table)->upsert(
