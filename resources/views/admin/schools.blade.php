@@ -84,8 +84,10 @@
                     placeholder: ""
                 }, {
                     label: "Chiefdom:",
-                    name: "chiefdom.name",
-                    type: 'readonly'
+                    name: "school.chiefdom_id",
+                    type: "select",
+                    placeholderDisabled: false,
+                    placeholder: ""
                 }, {
                     label: "Council:",
                     name: "school.council_name"
@@ -100,8 +102,9 @@
                     name: "school.address"
                 }, {
                     label: "Picker",
-                    name: '',
-                    type: "gmap"
+                    name: 'school._map_picker',
+                    type: "gmap",
+                    submit: false
                 }, {
                     label: "Latitude",
                     name: "school.lat",
@@ -122,14 +125,46 @@
             ]
         });
 
+        // Chiefdoms hang off the legacy `geo` hierarchy rather than `district_office`,
+        // so the two are bridged here by district name (done server-side) to filter
+        // the Chiefdom dropdown down to the selected District Office.
+        var chiefdomsByDistrict = {!! json_encode($chiefdomsByDistrict) !!};
+        var districtOfficeToGeoId = {!! json_encode($districtOfficeToGeoId) !!};
+
+        function chiefdomOptionsForDistrict(districtOfficeUuid) {
+            var geoId = districtOfficeToGeoId[districtOfficeUuid];
+            var chiefdoms = (geoId !== undefined && chiefdomsByDistrict[geoId]) ? chiefdomsByDistrict[geoId] : [];
+            return chiefdoms.map(function (c) {
+                return { label: c.name, value: c.id };
+            });
+        }
+
+        editorDtSchools.field('school.district_office_uuid').input().on('change', function () {
+            var districtOfficeUuid = editorDtSchools.field('school.district_office_uuid').val();
+            editorDtSchools.field('school.chiefdom_id').update(chiefdomOptionsForDistrict(districtOfficeUuid));
+            editorDtSchools.field('school.chiefdom_id').val('');
+        });
+
         editorDtSchools.on('open', function (e, json, data) {
 
-            for (var key in e.currentTarget.s.editData['school.lat']) {
+            // Scope the Chiefdom list down to the school's existing District Office
+            // (if any) without losing its currently selected chiefdom.
+            var openDistrictUuid = editorDtSchools.field('school.district_office_uuid').val();
+            if (openDistrictUuid) {
+                var currentChiefdomId = editorDtSchools.field('school.chiefdom_id').val();
+                editorDtSchools.field('school.chiefdom_id').update(chiefdomOptionsForDistrict(openDistrictUuid));
+                editorDtSchools.field('school.chiefdom_id').val(currentChiefdomId);
             }
-            ;
 
-            var lat = parseFloat(e.currentTarget.s.editData['school.lat'][key]);
-            var lng = parseFloat(e.currentTarget.s.editData['school.lng'][key]);
+            var latData = e.currentTarget.s.editData['school.lat'];
+            var lngData = e.currentTarget.s.editData['school.lng'];
+            var key;
+            if (latData) {
+                for (var k in latData) { key = k; }
+            }
+
+            var lat = latData ? parseFloat(latData[key]) : NaN;
+            var lng = lngData ? parseFloat(lngData[key]) : NaN;
 
             //default val for user
             if (!lat) lat = 8.472266;

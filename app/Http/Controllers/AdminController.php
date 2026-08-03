@@ -64,7 +64,24 @@ class AdminController extends Controller
 
     public function manageSchools()
     {
-        return view('admin.schools');
+        $chiefdomsByDistrict = DB::table('geo')
+            ->where('type', '3')
+            ->where('active', 1)
+            ->orderBy('name')
+            ->get(['id', 'name', 'parent_id'])
+            ->groupBy('parent_id');
+
+        // Bridge table: `school.district_office_uuid` points at `district_office`,
+        // but chiefdoms hang off the legacy `geo` hierarchy (geo.type=2 for districts)
+        // instead -- the two tables share no common id, only matching district names.
+        $districtOfficeToGeoId = DB::table('district_office')
+            ->where('district_office.active', 1)
+            ->join('geo', function ($join) {
+                $join->on('geo.name', '=', 'district_office.name')->where('geo.type', '2');
+            })
+            ->pluck('geo.id', 'district_office.uuid');
+
+        return view('admin.schools', compact('chiefdomsByDistrict', 'districtOfficeToGeoId'));
     }
 
     public function manageDistrictOffices()

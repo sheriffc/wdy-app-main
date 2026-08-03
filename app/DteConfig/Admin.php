@@ -11,6 +11,7 @@ use
     DataTables\Editor\MJoin
     ;
 use DataTables\Editor\Format;
+use Illuminate\Support\Str;
 
 class Admin
 {
@@ -287,7 +288,7 @@ class Admin
         return Editor::inst( $db, 'school','uuid' )
 //            ->debug( true )
             ->fields(
-                Field::inst( 'school.uuid' )->set( false ),
+                Field::inst( 'school.uuid' ),
                 Field::inst( 'school.name' ),
                 Field::inst( 'school.emis_id' ),
                 Field::inst( 'school.payroll_sid' ),
@@ -314,14 +315,29 @@ class Admin
                     ),
                 Field::inst( 'district_office.name' ),
                 Field::inst( 'school.district_id' ),
-                Field::inst( 'school.chiefdom_id' ),
+                Field::inst( 'school.chiefdom_id' )
+                    ->options( Options::inst()
+                        ->table('geo')
+                        ->value('id')
+                        ->label('name')
+                        ->where( function ($q) {
+                            $q->where('type', '3', '=');
+                            $q->where('active', 1, '=');
+                        })
+                    ),
                 Field::inst( 'chiefdom.name' )->set( false ),
                 Field::inst( 'school.council_name' ),
                 Field::inst( 'school.section_name' ),
                 Field::inst( 'school.town_name' ),
                 Field::inst( 'school.address' ),
-                Field::inst( 'school.lat' ),
-                Field::inst( 'school.lng' ),
+                Field::inst( 'school.lat' )
+                    ->setFormatter( function ( $val, $data, $opts ) {
+                        return $val === '' ? null : $val;
+                    } ),
+                Field::inst( 'school.lng' )
+                    ->setFormatter( function ( $val, $data, $opts ) {
+                        return $val === '' ? null : $val;
+                    } ),
                 Field::inst( 'school.media_photo_uuid' ),
                 Field::inst( 'school.created_at' )
                     ->getFormatter( Format::dateSqlToFormat( 'd-m-y H:i' ) )
@@ -329,10 +345,23 @@ class Admin
                 Field::inst( 'school.updated_at' )
                     ->getFormatter( Format::dateSqlToFormat( 'd-m-y H:i' ) )
                     ->set (false),
+                Field::inst( 'school.created_by' )->set( Field::SET_CREATE ),
+                Field::inst( 'school.updated_by' ),
             )
             ->leftJoin( 'option_list as education_level',   "education_level.list_name='school_education_level' AND school.school_education_level_oid = education_level.item_id")
             ->leftJoin( 'district_office',   "district_office.uuid = school.district_office_uuid AND district_office.active")
             ->leftJoin( 'geo as chiefdom',   "chiefdom.id = school.chiefdom_id")
+            ->on( 'preCreate', function ( $e, $values ) use ( $id ) {
+                $e->field('school.uuid')->setValue( (string) Str::uuid() );
+                $e->field('school.created_by')->setValue( $id );
+                $e->field('school.updated_by')->setValue( $id );
+            })
+            ->on( 'preEdit', function ( $e, $editId, $values ) use ( $id ) {
+                // uuid is the FK target for many other tables (admissions, enrolments,
+                // teachers, ...) -- never let an edit submission change it.
+                $e->field('school.uuid')->setValue( $editId );
+                $e->field('school.updated_by')->setValue( $id );
+            })
             ;
     }
     function manageDistrictOffices($db,$group, $id,$logging){
@@ -346,8 +375,14 @@ class Admin
                 Field::inst( 'district_office.name' ),
                 Field::inst( 'district_office.district_id' )->set( false ),
                 Field::inst( 'district_office.district_code' ),
-                Field::inst( 'district_office.lat' ),
-                Field::inst( 'district_office.lng' ),
+                Field::inst( 'district_office.lat' )
+                    ->setFormatter( function ( $val, $data, $opts ) {
+                        return $val === '' ? null : $val;
+                    } ),
+                Field::inst( 'district_office.lng' )
+                    ->setFormatter( function ( $val, $data, $opts ) {
+                        return $val === '' ? null : $val;
+                    } ),
                 Field::inst( 'district_office.active' )
                     ->setFormatter( function ( $val, $data, $opts ) {
                         return ! $val ? 0 : 1;

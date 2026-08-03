@@ -77,8 +77,9 @@
                     ]
                 }, {
                     label: "Picker",
-                    name: '',
-                    type:  "gmap"
+                    name: 'district_office._map_picker',
+                    type:  "gmap",
+                    submit: false
                 }, {
                     label: "Latitude",
                     name: "district_office.lat",
@@ -101,10 +102,15 @@
 
         editorDtDistrictOffices.on( 'open', function ( e, json, data ) {
 
-            for (var key in e.currentTarget.s.editData['district_office.lat']){};
+            var latData = e.currentTarget.s.editData['district_office.lat'];
+            var lngData = e.currentTarget.s.editData['district_office.lng'];
+            var key;
+            if (latData) {
+                for (var k in latData) { key = k; }
+            }
 
-            var lat = parseFloat(e.currentTarget.s.editData['district_office.lat'][key]);
-            var lng = parseFloat(e.currentTarget.s.editData['district_office.lng'][key]);
+            var lat = latData ? parseFloat(latData[key]) : NaN;
+            var lng = lngData ? parseFloat(lngData[key]) : NaN;
 
             //default val for user
             if (!lat) lat = 8.472266;

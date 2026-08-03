@@ -5,15 +5,13 @@
     $previousUrlPath =  url()->previous();
     $urlArray = explode("/",$previousUrlPath);
 
-    if($urlArray[3] != 'login' && $urlArray[3] !='register'){
-        if (count($urlArray) >= 4) {
-            $pathCountDifference = count($urlArray) - 4;
-            $visitedPath = [];
-            for ($i=0; $i <= $pathCountDifference; $i++) { 
-                $visitedPath[]= $urlArray[3+$i];
-            }
-            Session::put("lastVisitedPage",implode("/",$visitedPath));
+    if (count($urlArray) >= 4 && $urlArray[3] != 'login' && $urlArray[3] !='register') {
+        $pathCountDifference = count($urlArray) - 4;
+        $visitedPath = [];
+        for ($i=0; $i <= $pathCountDifference; $i++) {
+            $visitedPath[]= $urlArray[3+$i];
         }
+        Session::put("lastVisitedPage",implode("/",$visitedPath));
     }
 @endphp
 <div class="container">
